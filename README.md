@@ -51,9 +51,21 @@ mysql -u root -p iest_maps < iestmaps_react/iest_maps_db.sql
 ```bash
 npm run dev:no-tunnel
 ```
-Opcional con tunel cloudflared(necsario para probar qr del guardia):
+
+## Publicar en GitHub
 
 ```bash
-npm run dev
+git init
+git add .
+git commit -m "chore: initial public release"
+git branch -M main
+git remote add origin https://github.com/Jorge0x1/IEST-MAPS.git
+git push -u origin main
 ```
+
+## Notas
+
+- El dump SQL esta versionado de forma publica para que otros puedan importar la base.
+- No subas tus archivos `.env` reales.
+- Si cambias credenciales o secretos, actualiza solo los `.env` locales.
 
