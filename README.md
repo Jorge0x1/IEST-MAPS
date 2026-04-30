@@ -1,6 +1,8 @@
-# IEST MAPS
+# IEST-MAPS
 
-Repositorio monorepo con:
+Mapa interactivo del campus con funciones para administradores y guardias.
+
+## Estructura
 
 - `iestmaps_react/`: frontend React + Vite.
 - `iestmaps_api/`: backend Node.js + Express + MySQL.
@@ -66,3 +68,4 @@ git push -u origin main
 - El dump SQL esta versionado de forma publica para que otros puedan importar la base.
 - No subas tus archivos `.env` reales.
 - Si cambias credenciales o secretos, actualiza solo los `.env` locales.
+
