@@ -1,89 +1,154 @@
 const fs = require('fs/promises')
 const path = require('path')
-const dotenv = require('dotenv')
-const mysql = require('mysql2/promise')
+const { spawnSync } = require('child_process')
 
 const rootDir = path.resolve(__dirname, '..')
 const envFiles = [path.join(rootDir, 'iestmaps_api', '.env'), path.join(rootDir, '.env')]
 const sqlPath = path.join(rootDir, 'iestmaps_react', 'iest_maps_db.sql')
 
-dotenv.config({ path: envFiles[1], override: false })
-dotenv.config({ path: envFiles[0], override: true })
+function parseEnvFile(filePath) {
+  try {
+    const content = require('fs').readFileSync(filePath, 'utf8')
+    const parsed = {}
+
+    for (const rawLine of content.split(/\r?\n/)) {
+      const line = rawLine.trim()
+      if (!line || line.startsWith('#')) continue
+
+      const separatorIndex = line.indexOf('=')
+      if (separatorIndex < 0) continue
+
+      const key = line.slice(0, separatorIndex).trim()
+      let value = line.slice(separatorIndex + 1).trim()
+
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1)
+      }
+
+      parsed[key] = value
+    }
+
+    return parsed
+  } catch {
+    return {}
+  }
+}
+
+const envConfig = {
+  ...parseEnvFile(envFiles[1]),
+  ...parseEnvFile(envFiles[0]),
+}
 
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'iest_maps',
+  host: envConfig.DB_HOST || process.env.DB_HOST || 'localhost',
+  port: Number(envConfig.DB_PORT || process.env.DB_PORT || 3306),
+  user: envConfig.DB_USER || process.env.DB_USER || 'root',
+  password: envConfig.DB_PASSWORD || process.env.DB_PASSWORD || '',
+  database: envConfig.DB_NAME || process.env.DB_NAME || 'iest_maps',
 }
 
-async function ensureDatabaseExists() {
-  const serverConnection = await mysql.createConnection({
-    host: dbConfig.host,
-    port: dbConfig.port,
-    user: dbConfig.user,
-    password: dbConfig.password,
-    multipleStatements: true,
+function getMysqlExecutable() {
+  const envExecutable = process.env.MYSQL_CLI_PATH || envConfig.MYSQL_CLI_PATH
+  if (envExecutable) {
+    return envExecutable
+  }
+
+  if (process.platform === 'win32') {
+    const xamppMysql = 'C:\\xampp\\mysql\\bin\\mysql.exe'
+    return xamppMysql
+  }
+
+  return 'mysql'
+}
+
+function buildMysqlArgs(extraArgs = []) {
+  const args = ['-h', dbConfig.host, '-P', String(dbConfig.port), '-u', dbConfig.user]
+  if (dbConfig.password) {
+    args.push(`-p${dbConfig.password}`)
+  }
+
+  return [...args, ...extraArgs]
+}
+
+function runMysqlCommand(extraArgs, input) {
+  const mysqlExecutable = getMysqlExecutable()
+  const result = spawnSync(mysqlExecutable, buildMysqlArgs(extraArgs), {
+    input,
+    encoding: 'utf8',
+    windowsHide: true,
   })
 
+  if (result.error) {
+    throw result.error
+  }
+
+  if (result.status !== 0) {
+    const stderr = (result.stderr || '').trim()
+    throw new Error(stderr || `mysql exited with code ${result.status}`)
+  }
+
+  return (result.stdout || '').trim()
+}
+
+function ensureMysqlCliAvailable() {
   try {
-    await serverConnection.query(
-      `CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`,
-    )
-  } finally {
-    await serverConnection.end()
+    runMysqlCommand(['--version'])
+    return true
+  } catch (error) {
+    const message = String(error?.message || '').toLowerCase()
+    const looksMissing =
+      message.includes('enoent') ||
+      message.includes('not found') ||
+      message.includes('cannot find') ||
+      message.includes('is not recognized')
+
+    if (looksMissing) {
+      return false
+    }
+
+    return true
   }
 }
 
-async function databaseHasTables() {
-  const connection = await mysql.createConnection({
-    host: dbConfig.host,
-    port: dbConfig.port,
-    user: dbConfig.user,
-    password: dbConfig.password,
-    database: dbConfig.database,
-    multipleStatements: true,
-  })
+function databaseHasTables() {
+  const stdout = runMysqlCommand([
+    '-Nse',
+    `SHOW TABLES FROM \`${dbConfig.database}\`;`,
+  ])
 
-  try {
-    const [tables] = await connection.query('SHOW TABLES')
-    return Array.isArray(tables) && tables.length > 0
-  } finally {
-    await connection.end()
-  }
+  return stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).length > 0
 }
 
-async function importSqlDump() {
-  const sql = await fs.readFile(sqlPath, 'utf8')
-  const connection = await mysql.createConnection({
-    host: dbConfig.host,
-    port: dbConfig.port,
-    user: dbConfig.user,
-    password: dbConfig.password,
-    database: dbConfig.database,
-    multipleStatements: true,
-  })
+function ensureDatabaseExists() {
+  runMysqlCommand([
+    '-e',
+    `CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`,
+  ])
+}
 
-  try {
-    await connection.query(sql)
-  } finally {
-    await connection.end()
-  }
+function importSqlDump() {
+  const sql = require('fs').readFileSync(sqlPath, 'utf8')
+  runMysqlCommand(['-D', dbConfig.database], sql)
 }
 
 async function main() {
   console.log('==> Preparando base de datos...')
-  await ensureDatabaseExists()
 
-  const hasTables = await databaseHasTables()
+  if (!ensureMysqlCliAvailable()) {
+    console.warn('==> No se encontró el cliente mysql. Se omite la preparación automática de BD y se continúa con dev.')
+    return
+  }
+
+  ensureDatabaseExists()
+
+  const hasTables = databaseHasTables()
   if (hasTables) {
     console.log(`==> La base de datos ${dbConfig.database} ya tiene tablas. No se vuelve a importar.`)
     return
   }
 
   console.log(`==> Importando ${path.relative(rootDir, sqlPath)}...`)
-  await importSqlDump()
+  importSqlDump()
   console.log('==> Base de datos lista.')
 }
 

@@ -42,7 +42,7 @@ copy iestmaps_react\.env.example iestmaps_react\.env
 
 ## Base de datos
 
-La base se prepara de forma automática al ejecutar `npm run dev` o `npm run dev:no-tunnel`. Solo asegurate de antes levantar XAMPP
+La base se prepara de forma automática al ejecutar `npm run dev` o `npm run dev:no-tunnel`. Solo asegurate de antes levantar XAMPP.
 
 Si quieres hacerlo manualmente, también puedes usar phpMyAdmin o la CLI de MySQL.
 
@@ -68,4 +68,6 @@ Opcional con tunel cloudflared (para probar qr del guardia):
 ```bash
 npm run dev
 ```
+
+Cuando uses `npm run dev`, busca la línea `TUNNEL URL:` en la terminal; ahí aparece el enlace público.
 
