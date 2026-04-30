@@ -69,5 +69,6 @@ Opcional con tunel cloudflared (para probar qr del guardia):
 npm run dev
 ```
 
+
 Cuando uses `npm run dev`, busca la línea `TUNNEL URL:` en la terminal; ahí aparece el enlace público.
 
