@@ -16,14 +16,14 @@ Mapa interactivo del campus con funciones para administradores y guardias.
 
 ## Instalacion
 
-Terminal en vscode
+Git Bash en vscode:
 ```bash
 git clone https://github.com/Jorge0x1/IEST-MAPS.git
 cd IEST-MAPS
 code .
 ```
 
-Desde la raiz del repo:
+Desde la raiz del repo (en Command Prompt):
 
 ```bash
 npm run setup
@@ -31,7 +31,7 @@ npm run setup
 
 ## Variables de entorno
 
-Copia los ejemplos y ajusta valores locales:
+Copia los ejemplos y ajusta valores locales (en Command Prompt):
 
 ```bash
 copy iestmaps_api\.env.example iestmaps_api\.env
