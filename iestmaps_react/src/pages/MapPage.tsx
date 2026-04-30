@@ -250,6 +250,13 @@ function MapPage({ user, onLogout }: MapPageProps) {
           onStartRoute={startRoute}
           onFinishRoute={finishRoute}
           actionDisabled={isLoading}
+          onReplayTutorial={isCommonUserView ? () => {
+            try {
+              localStorage.removeItem(TOUR_STORAGE_KEY)
+            } catch {}
+            // small delay to allow menu close animations and layout updates
+            window.setTimeout(() => setTourStepIndex(0), 120)
+          } : undefined}
         />
 
         <section className="map-panel" aria-label="Mapa del campus">

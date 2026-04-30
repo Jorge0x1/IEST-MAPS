@@ -161,8 +161,8 @@ function PageHeader({
   }, [isConfirmOpen])
 
   return (
-    <>{`page-header ${variant === 'visitor' ? 'page-header--visitor' : ''}`}
-      <header className="page-header">
+    <>
+      <header className={`page-header ${variant === 'visitor' ? 'page-header--visitor' : ''}`}>
         <div className="page-header-bar">
         <div />
 

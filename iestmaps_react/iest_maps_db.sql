@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 30-04-2026 a las 07:52:18
+-- Tiempo de generación: 30-04-2026 a las 23:25:47
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -93,7 +93,7 @@ INSERT INTO `oficina` (`edificio`, `piso`, `lugar`, `ID_oficina`, `x`, `y`) VALU
 (6, 1, 'Servicios Escolares', 60001, 1100, 260),
 (6, 1, 'DTI', 60002, 1800, 300),
 (0, 1, 'Capilla', 90000, 75, 230),
-(3, 1, 'Biblioteca', 90001, 1685, 1170),
+(0, 1, 'Biblioteca', 90001, 1685, 1170),
 (0, 1, 'Cafe', 90002, 1305, 1420),
 (0, 1, 'Snacks', 90003, 1380, 1180),
 (0, 1, 'Sorbitos', 90004, 1150, 1405),
@@ -203,6 +203,9 @@ INSERT INTO `salones` (`edificio`, `piso`, `numero_salon`, `x`, `y`, `uso`) VALU
 (4, 2, 409, 620, 1290, 'Salon'),
 (4, 2, 410, 465, 1290, 'Salon'),
 (4, 2, 411, 380, 1290, 'Salon'),
+(7, 1, 431, 710, 1460, 'Laboratorio Quimica'),
+(7, 1, 432, 450, 1460, 'Laboratiorio Mecatronica'),
+(7, 2, 433, 790, 1570, 'Laboratorio de Robotica '),
 (5, 1, 501, 240, 475, 'Salon'),
 (5, 1, 502, 240, 615, 'Salon'),
 (5, 1, 503, 240, 730, 'Salon'),

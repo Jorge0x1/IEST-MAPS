@@ -17,6 +17,7 @@ interface SearchRouteFormProps {
   onDestinationChange: (value: string) => void
   onStartRoute: () => void
   onFinishRoute: () => void
+  onReplayTutorial?: () => void
 }
 
 function SearchRouteForm({
@@ -34,6 +35,7 @@ function SearchRouteForm({
   onDestinationChange,
   onStartRoute,
   onFinishRoute,
+  onReplayTutorial,
 }: SearchRouteFormProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
@@ -329,6 +331,18 @@ function SearchRouteForm({
 
               {isProfileMenuOpen ? (
                 <div className="route-profile-menu" role="menu" aria-label="Opciones de perfil">
+                  <button
+                    type="button"
+                    className="route-profile-menu-item"
+                    role="menuitem"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setIsProfileMenuOpen(false)
+                      onReplayTutorial?.()
+                    }}
+                  >
+                    Ver tutorial
+                  </button>
                   <button
                     type="button"
                     className="route-profile-menu-item"
