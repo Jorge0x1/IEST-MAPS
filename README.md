@@ -16,6 +16,13 @@ Mapa interactivo del campus con funciones para administradores y guardias.
 
 ## Instalacion
 
+Terminal en vscode
+```bash
+git clone https://github.com/Jorge0x1/IEST-MAPS.git
+cd IEST-MAPS
+code .
+```
+
 Desde la raiz del repo:
 
 ```bash
