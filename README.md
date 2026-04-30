@@ -31,6 +31,8 @@ Desde la raiz del repo (en Command Prompt):
 npm run setup
 ```
 
+`npm run setup` intenta instalar `cloudflared` automáticamente (en Windows con `winget` o `choco`, en macOS con `brew`). Si no se puede, el proyecto igual puede correr con `npm run dev:no-tunnel`.
+
 ## Variables de entorno
 
 Copia los ejemplos y ajusta valores locales (en Command Prompt):

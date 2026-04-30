@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "setup": "npm install && npm --prefix iestmaps_api install && npm --prefix iestmaps_react install",
+    "setup": "npm install && npm --prefix iestmaps_api install && npm --prefix iestmaps_react install && node scripts/install-cloudflared.js",
     "db:setup": "node scripts/db-setup.js",
     "predev": "npm run db:setup",
     "predev:api": "npm run db:setup",

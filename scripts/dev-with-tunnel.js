@@ -82,7 +82,7 @@ function findAvailablePort(startPort) {
       reject(error)
     })
 
-    server.listen({ host: '127.0.0.1', port: startPort }, () => {
+    server.listen(startPort, () => {
       const address = server.address()
       server.close(() => {
         resolve(typeof address === 'object' && address ? address.port : startPort)
@@ -106,11 +106,16 @@ function isCloudflaredAvailable() {
 }
 
 async function main() {
+  const apiPort = await findAvailablePort(DEFAULT_API_PORT)
+  const webPort = await findAvailablePort(DEFAULT_WEB_PORT)
+  const webUrl = `http://localhost:${webPort}`
+  const apiBaseUrl = `http://localhost:${apiPort}/api`
+
   process.on('SIGINT', () => shutdown(0))
   process.on('SIGTERM', () => shutdown(0))
 
   console.log('==> Preparando arranque con túnel...')
-  console.log('==> Nota: si los puertos 3001 o 5174 ya están ocupados, se usarán los siguientes puertos libres.')
+  console.log(`==> API en puerto ${apiPort}, web en puerto ${webPort}`)
   console.log('==> Si cloudflared imprime la URL, también verás una línea TUNNEL URL arriba.')
 
   const apiArgs = isWindows
@@ -118,28 +123,28 @@ async function main() {
     : ['--prefix', 'iestmaps_api', 'run', 'dev']
 
   const webArgs = isWindows
-    ? ['/d', '/s', '/c', 'npm --prefix iestmaps_react run dev -- --port 5174']
-    : ['--prefix', 'iestmaps_react', 'run', 'dev', '--', '--port', '5174']
+    ? ['/d', '/s', '/c', `npm --prefix iestmaps_react run dev -- --port ${webPort} --strictPort`]
+    : ['--prefix', 'iestmaps_react', 'run', 'dev', '--', '--port', String(webPort), '--strictPort']
 
   spawnProcess('API', isWindows ? 'cmd.exe' : 'npm', apiArgs, {
     env: {
       ...process.env,
-      PORT: '0',
-      FRONTEND_URL: 'http://localhost:5174',
+      PORT: String(apiPort),
+      FRONTEND_URL: webUrl,
     },
   })
 
   spawnProcess('WEB', isWindows ? 'cmd.exe' : 'npm', webArgs, {
     env: {
       ...process.env,
-      VITE_API_BASE_URL: 'http://localhost:3001/api',
+      VITE_API_BASE_URL: apiBaseUrl,
     },
   })
 
   if (isCloudflaredAvailable()) {
     const tunnelArgs = isWindows
-      ? ['/d', '/s', '/c', 'cloudflared --url http://localhost:5174 --no-autoupdate']
-      : ['--url', 'http://localhost:5174', '--no-autoupdate']
+      ? ['/d', '/s', '/c', `cloudflared --url ${webUrl} --no-autoupdate`]
+      : ['--url', webUrl, '--no-autoupdate']
 
     spawnProcess('TUNNEL', isWindows ? 'cmd.exe' : 'cloudflared', tunnelArgs)
   } else {
