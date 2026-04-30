@@ -1,0 +1,335 @@
+.guard-content {
+  padding: 1.5rem 1rem 2rem;
+  display: grid;
+  justify-content: center;
+  align-content: start;
+  align-items: start;
+}
+
+.guard-card {
+  width: min(480px, 92vw);
+  min-height: min(760px, calc(100vh - 150px));
+  background-color: #1f1f1f;
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 1.5rem 1.5rem 2rem;
+  box-shadow: 0 14px 34px rgba(16, 24, 40, 0.2);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.guard-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(16, 24, 40, 0.26);
+}
+
+.guard-card h2 {
+  margin: 0 0 1.4rem;
+}
+
+.guard-register-card {
+  width: min(390px, 90vw);
+  min-height: auto;
+  height: fit-content;
+  align-self: start;
+  padding: 1.3rem 1.35rem 1.4rem;
+}
+
+.guard-register-card h2 {
+  margin-bottom: 1rem;
+}
+
+.guard-register-form {
+  gap: 0.92rem;
+}
+
+.guard-register-form label {
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+
+.guard-register-form input {
+  padding: 0.66rem 0.74rem;
+  font-size: 0.92rem;
+}
+
+.guard-register-form button {
+  margin-top: 0.15rem;
+  padding: 0.72rem 0.9rem;
+}
+
+.guard-form {
+  display: grid;
+  gap: 1.05rem;
+}
+
+.guard-form label {
+  display: grid;
+  gap: 0.45rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.guard-form input {
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 0.75rem 0.8rem;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guard-form input:focus-visible {
+  border-color: #2e75f3;
+  box-shadow: 0 0 0 3px rgba(46, 117, 243, 0.2);
+}
+
+.guard-form button {
+  border: none;
+  border-radius: 6px;
+  background-color: #f46000;
+  color: #fff;
+  margin-top: 0.3rem;
+  padding: 0.85rem 0.95rem;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guard-form button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 10px 18px rgba(244, 96, 0, 0.3);
+}
+
+.guard-form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.guard-message {
+  margin: 0.8rem 0 0;
+  font-weight: 600;
+}
+
+.guard-message.error {
+  color: #b42318;
+}
+
+.guard-message.success {
+  color: #1e7a3b;
+}
+
+.guard-qr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.guard-qr-modal {
+  width: min(380px, 95vw);
+  background-color: #1f1f1f;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+}
+
+.guard-qr-modal h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.guard-qr-image {
+  width: min(280px, 70vw);
+  height: auto;
+  background-color: #fff;
+  border-radius: 6px;
+}
+
+.guard-qr-meta {
+  width: 100%;
+  margin: 0;
+  font-size: 0.86rem;
+  word-break: break-word;
+}
+
+.guard-qr-link {
+  color: #8ec5ff;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+.guard-qr-warning {
+  width: 100%;
+  margin: 0;
+  font-size: 0.8rem;
+  color: #ffd29f;
+  background-color: rgba(244, 96, 0, 0.18);
+  border: 1px solid rgba(244, 96, 0, 0.45);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+}
+
+.guard-qr-modal button {
+  border: none;
+  border-radius: 6px;
+  background-color: #f46000;
+  color: #fff;
+  padding: 0.68rem 0.9rem;
+  cursor: pointer;
+  font-weight: 700;
+  width: 100%;
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guard-qr-modal button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 10px 18px rgba(244, 96, 0, 0.3);
+}
+
+.guard-history-search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+
+.guard-history-search input {
+  border: 1px solid #cfcfcf;
+  border-radius: 6px;
+  padding: 0.72rem 0.78rem;
+  font-size: 1rem;
+  background-color: #f7f7f7;
+  color: #656565;
+}
+
+.guard-history-search button {
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #606060;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.guard-history-search button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.guard-history-content {
+  display: block;
+  justify-content: center;
+  padding: 1.4rem 1.5rem 2rem;
+  background-color: #e9e9e9;
+}
+
+.guard-history-card {
+  width: 100%;
+  max-width: 880px;
+  min-height: calc(100vh - 140px);
+  margin: 0 auto;
+  background-color: #efefef;
+  color: #111111;
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-sizing: border-box;
+}
+
+.guard-history-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.guard-history-group {
+  background-color: #dcdcdc;
+  border-radius: 5px;
+  padding: 0.65rem;
+}
+
+.guard-history-group h3 {
+  margin: 0 0 0.55rem;
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.guard-history-group-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.guard-history-item {
+  background-color: #f46000;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 0.58rem 0.7rem;
+  font-size: 0.95rem;
+  font-weight: 550;
+}
+
+.guard-history-item p {
+  margin: 0 0 0.12rem;
+}
+
+.guard-history-item p:last-child {
+  margin-bottom: 0;
+}
+
+.guard-history-item strong {
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .guard-card {
+    min-height: auto;
+    width: min(480px, 96vw);
+    padding: 1.2rem;
+  }
+
+  .guard-register-card {
+    width: min(300px, 95vw);
+    padding: 1.1rem 1rem 1.15rem;
+  }
+
+  .guard-register-form {
+    gap: 0.75rem;
+  }
+
+  .guard-history-content {
+    padding: 1rem 0.9rem 1.2rem;
+  }
+
+  .guard-history-card {
+    width: 100%;
+    min-height: auto;
+    padding: 0.45rem;
+  }
+
+  .guard-history-group h3 {
+    font-size: 0.98rem;
+  }
+
+  .guard-history-item {
+    font-size: 0.9rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .guard-register-content {
+    min-height: calc(100vh - 92px);
+    align-content: center;
+    justify-content: center;
+  }
+
+  .guard-register-card {
+    align-self: center;
+  }
+}

@@ -1,0 +1,108 @@
+import {
+  celdasDisponiblesP1,
+  celdasDisponiblesP2,
+  CELLS_PER_FLOOR,
+  conexionesInterPiso,
+  FIXED_COLS,
+  todasLasCeldas,
+} from './mapData'
+
+// encuentra a que piso pertenece una celda (piso 1 o piso 2)
+function getCellSet(cellId: number): Set<number> | null {
+  if (celdasDisponiblesP1.has(cellId)) return celdasDisponiblesP1
+  if (celdasDisponiblesP2.has(cellId)) return celdasDisponiblesP2
+  return null
+}
+
+// encuentra las celdas vecinas a una celda (arriba, abajo, izquierda, derecha)
+// tambien incluye escaleras que conectan los dos pisos
+function getNeighbors(cell: number): number[] {
+  const neighbors: number[] = []
+  const cellSet = getCellSet(cell)
+
+  // si la celda no existe, no hay vecinos
+  if (!cellSet) return neighbors
+
+  const isFloor2 = celdasDisponiblesP2.has(cell)
+  const offset = isFloor2 ? 1000 : 0
+  const localCell = cell - offset
+
+  // calcula posiciones arriba y abajo (movimiento vertical)
+  const up = localCell - FIXED_COLS + offset
+  const down = localCell + FIXED_COLS + offset
+
+  // revisa si estamos en los bordes izquierdo/derecho para evitar envolverse
+  // verifica que no pasemos entre pisos o de lado del mapa
+  const isLeftBorder = (localCell - 1) % FIXED_COLS === 0
+  const isRightBorder = localCell % FIXED_COLS === 0
+  const left = !isLeftBorder ? cell - 1 : null
+  const right = !isRightBorder ? cell + 1 : null
+
+  // agrega los vecinos que existen en el mapa (adyacentes validos)
+  for (const candidate of [up, down, left, right]) {
+    if (candidate !== null && cellSet.has(candidate)) {
+      neighbors.push(candidate)
+    }
+  }
+
+  // si hay una escalera en esta celda, agrega el otro piso como vecino
+  // esto permite que el pathfinding cruce entre pisos
+  if (conexionesInterPiso[cell]) {
+    neighbors.push(conexionesInterPiso[cell])
+  }
+
+  return neighbors
+}
+
+// busca el camino mas corto entre dos salones usando busqueda por amplitud (BFS)
+// retorna la lista de celdas que forman la ruta, o null si no hay ruta posible
+// BFS explora todas las posibilidades nivel por nivel, garantizando la ruta mas corta
+export function bfsRoute(start: number, end: number): number[] | null {
+  // valida que ambas celdas son accesibles
+  if (!todasLasCeldas.has(start) || !todasLasCeldas.has(end)) {
+    return null
+  }
+
+  // cola de rutas a explorar: comienza con la celda de inicio
+  const queue: number[][] = [[start]]
+  // conjunto de celdas ya visitadas (para evitar loops infinitos)
+  const visited = new Set([start])
+
+  // explora todas las rutas posibles nivel por nivel (como ondas en el agua)
+  while (queue.length > 0) {
+    // obtiene la proxima ruta a explorar
+    const path = queue.shift()
+    if (!path) break
+
+    // la celda actual es la ultima en el camino
+    const current = path[path.length - 1]
+    // si llegamos al destino, retorna la ruta completa
+    if (current === end) {
+      return path
+    }
+
+    // obtiene todos los vecinos de la celda actual
+    // explora cada lado (arriba, abajo, izquierda, derecha, escaleras)
+    for (const neighbor of getNeighbors(current)) {
+      // si el vecino no ha sido visitado, lo agrega a la cola
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor)
+        // crea una nueva ruta extendiendo la actual con el vecino
+        queue.push([...path, neighbor])
+      }
+    }
+  }
+
+  // no hay ruta disponible (los puntos estan desconectados o no existen)
+  return null
+}
+
+// verifica si una celda pertenece a un piso especifico
+export function isCellInFloor(cellId: number, floor: 1 | 2): boolean {
+  if (floor === 1) {
+    return cellId >= 1 && cellId <= CELLS_PER_FLOOR
+  }
+
+  // el piso 2 usa numeros a partir de 1001
+  return cellId >= 1001 && cellId <= 1000 + CELLS_PER_FLOOR
+}

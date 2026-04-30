@@ -1,0 +1,76 @@
+// datos del mapa: grilla, celdas disponibles, escaleras, etc
+
+// dimensiones de la grilla del mapa (30x30 celdas)
+export const FIXED_COLS = 30
+export const FIXED_ROWS = 30
+// total de celdas por piso (900)
+export const CELLS_PER_FLOOR = FIXED_COLS * FIXED_ROWS
+
+// celdas sin muros o bloqueadas en piso 1 (0-900)
+// conjunto de numeros de celda accesibles para el pathfinding
+export const celdasDisponiblesP1 = new Set([
+  34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 64, 65, 78, 94, 108, 124, 125, 126, 127,
+  128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 154, 168, 169, 184, 199, 214, 229, 244, 245,
+  258, 259, 274, 275, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 304, 311, 319, 334, 339, 340,
+  341, 349, 364, 365, 366, 367, 368, 379, 394, 408, 409, 424, 425, 426, 427, 428, 429, 430, 431, 432,
+  433, 434, 435, 436, 437, 438, 439, 454, 469, 484, 499, 514, 529, 544, 559, 574, 575, 588, 589, 604,
+  619, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 664, 679, 707,
+  709, 719, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 767, 768, 769, 770, 799, 829,
+  859, 889,
+])
+
+// celdas sin muros o bloqueadas en piso 2 (1000-1900)
+// conjunto de numeros de celda accesibles para el pathfinding
+export const celdasDisponiblesP2 = new Set([
+  1034, 1064, 1065, 1094, 1095, 1097, 1098, 1100, 1102, 1104, 1105, 1124, 1125, 1126, 1127, 1128, 1129,
+  1130, 1131, 1132, 1133, 1134, 1135, 1154, 1184, 1189, 1214, 1244, 1258, 1274, 1280, 1281, 1282, 1283,
+  1284, 1285, 1286, 1287, 1288, 1289, 1304, 1319, 1334, 1349, 1364, 1379, 1394, 1408, 1409, 1424, 1425,
+  1426, 1427, 1428, 1429, 1430, 1431, 1432, 1433, 1434, 1435, 1436, 1437, 1438, 1439, 1454, 1469, 1484,
+  1499, 1514, 1529, 1544, 1559, 1574, 1575, 1588, 1589, 1604, 1605, 1606, 1607, 1608, 1609, 1610, 1611,
+  1612, 1613, 1614, 1615, 1616, 1617, 1618, 1619, 1634, 1648, 1664, 1679, 1694, 1707, 1709, 1719, 1735,
+  1736, 1737, 1738, 1739, 1740, 1741, 1742, 1743, 1744, 1745, 1746, 1747, 1748, 1749, 1767, 1772, 1776,
+])
+
+// escaleras que conectan piso 1 con piso 2
+// clave: celda en piso 1, valor: celda equivalente en piso 2
+// permite el pathfinding cruzar entre pisos
+export const conexionesInterPiso: Record<number, number> = {
+  65: 1065,
+  1065: 65,
+  258: 1258,
+  1258: 258,
+  408: 1408,
+  1408: 408,
+  575: 1575,
+  1575: 575,
+  588: 1588,
+  707: 1707,
+  1707: 707,
+  719: 1719,
+  1719: 719,
+}
+
+// union de todas las celdas disponibles en ambos pisos
+// facilita verificacion rapida si una celda es accesible
+export const todasLasCeldas = new Set([...celdasDisponiblesP1, ...celdasDisponiblesP2])
+
+// encuentra a que piso pertenece una celda
+// retorna 1, 2 o null si la celda no existe
+export function getFloorByCell(cellId: number): 1 | 2 | null {
+  if (celdasDisponiblesP1.has(cellId)) return 1
+  if (celdasDisponiblesP2.has(cellId)) return 2
+  return null
+}
+
+// obtiene el archivo de imagen SVG para el piso
+// piso 1: Mapa.svg, piso 2: MapaP2.svg
+export function getFloorImage(floor: 1 | 2): string {
+  return floor === 1 ? '/assets/maps/Mapa.svg' : '/assets/maps/MapaP2.svg'
+}
+
+// calcula el offset numerico para las celdas de un piso
+// piso 1: offset 0 (celdas 1-900)
+// piso 2: offset 1000 (celdas 1001-1900)
+export function getFloorOffset(floor: 1 | 2): number {
+  return floor === 2 ? 1000 : 0
+}

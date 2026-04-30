@@ -1,0 +1,15 @@
+{
+  "name": "iestmaps-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "setup": "npm install && npm --prefix iestmaps_api install && npm --prefix iestmaps_react install",
+    "dev": "concurrently -n API,WEB,TUNNEL -c green,cyan,yellow \"set PORT=3001&& set FRONTEND_URL=http://localhost:5174&& npm --prefix iestmaps_api run dev\" \"npm --prefix iestmaps_react run dev -- --port 5174 --strictPort\" \"cloudflared --url http://localhost:5174 --no-autoupdate\"",
+    "dev:api": "npm --prefix iestmaps_api run dev",
+    "dev:web": "npm --prefix iestmaps_react run dev",
+    "dev:no-tunnel": "concurrently -n API,WEB -c green,cyan \"set PORT=3001&& set FRONTEND_URL=http://localhost:5174&& npm --prefix iestmaps_api run dev\" \"npm --prefix iestmaps_react run dev -- --port 5174 --strictPort\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

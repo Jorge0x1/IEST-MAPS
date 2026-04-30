@@ -1,0 +1,116 @@
+.admin-drawer {
+  position: fixed;
+  top: 115px;
+  left: 0.5rem;
+  z-index: 20;
+  display: grid;
+  gap: 0.6rem;
+  align-items: start;
+  transition: none;
+  pointer-events: none;
+}
+
+.admin-drawer-tab {
+  border: none;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  background-color: #111;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  padding: 0;
+  margin-left: -2rem;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
+  pointer-events: auto;
+}
+
+.admin-drawer-tab:hover {
+  transform: translateY(-2px) scale(1.01);
+  background-color: #202020;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+}
+
+.admin-drawer-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  margin-left: 0;
+}
+
+.admin-drawer-panel {
+  width: min(240px, 90vw);
+  background-color: #1f1f1f;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  transform: translateX(calc(-100% - 12px));
+  transition: transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.admin-drawer.open .admin-drawer-panel {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.admin-drawer.open .admin-drawer-icon {
+  transform: rotate(180deg);
+}
+
+.admin-sidebar-link {
+  display: block;
+  text-decoration: none;
+  color: #fff;
+  background-color: #2c2c2c;
+  border-radius: 6px;
+  padding: 0.65rem 0.75rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-sidebar-link:hover {
+  background-color: #3a3a3a;
+  transform: translateX(2px);
+}
+
+.admin-sidebar-link.active {
+  background-color: #f46000;
+}
+
+@media (max-width: 1024px) {
+  .admin-drawer {
+    top: 118px;
+    left: 0.15rem;
+  }
+
+  .admin-drawer-tab {
+    width: 46px;
+    height: 46px;
+    margin-left: -1.35rem;
+  }
+
+  .admin-drawer-icon {
+    width: 22px;
+    height: 22px;
+    margin-left: 0.7rem;
+  }
+
+  .admin-drawer-panel {
+    width: min(236px, 86vw);
+  }
+}
+
+@media (min-width: 1025px) {
+  .admin-drawer-tab {
+    margin-left: 0;
+  }
+}

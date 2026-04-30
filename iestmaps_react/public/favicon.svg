@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="IEST MAPS">
+  <path d="M32 4C20.4 4 11 13.4 11 25c0 15.2 21 35 21 35s21-19.8 21-35C53 13.4 43.6 4 32 4Z" fill="#f46000"/>
+  <circle cx="32" cy="25" r="14" fill="#f46000" stroke="#111111" stroke-width="4"/>
+  <text x="32" y="39" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="900" fill="#f46000" stroke="#111111" stroke-width="2.5" paint-order="stroke fill">A</text>
+</svg>
