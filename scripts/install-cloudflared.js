@@ -1,8 +1,13 @@
+const fs = require('node:fs')
+const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 
 const isWindows = process.platform === 'win32'
 const isMac = process.platform === 'darwin'
 const isLinux = process.platform === 'linux'
+const rootDir = path.resolve(__dirname, '..')
+const localBinDir = path.join(rootDir, 'scripts', 'bin')
+const localCloudflaredPath = path.join(localBinDir, isWindows ? 'cloudflared.exe' : 'cloudflared')
 
 function run(command, args) {
   return spawnSync(command, args, {
@@ -16,6 +21,28 @@ function run(command, args) {
 function isAvailable(command, args = ['--version']) {
   const result = run(command, args)
   return !result.error && result.status === 0
+}
+
+function isLocalCloudflaredAvailable() {
+  if (!fs.existsSync(localCloudflaredPath)) return false
+  const result = run(localCloudflaredPath, ['--version'])
+  return !result.error && result.status === 0
+}
+
+function installLocalWindowsBinary() {
+  if (!isWindows) return false
+
+  fs.mkdirSync(localBinDir, { recursive: true })
+
+  const result = run('powershell', [
+    '-NoProfile',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-Command',
+    `Invoke-WebRequest -Uri 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe' -OutFile '${localCloudflaredPath.replace(/\\/g, '\\\\')}'`,
+  ])
+
+  return result.status === 0 && isLocalCloudflaredAvailable()
 }
 
 function installWithWinget() {
@@ -74,6 +101,11 @@ function main() {
     return
   }
 
+  if (isLocalCloudflaredAvailable()) {
+    console.log(`==> cloudflared local ya está disponible en: ${localCloudflaredPath}`)
+    return
+  }
+
   let installed = false
 
   if (isWindows) {
@@ -84,6 +116,11 @@ function main() {
 
   if (installed && isAvailable('cloudflared', ['--version'])) {
     console.log('==> cloudflared instalado correctamente.')
+    return
+  }
+
+  if (installLocalWindowsBinary()) {
+    console.log(`==> cloudflared descargado localmente en: ${localCloudflaredPath}`)
     return
   }
 

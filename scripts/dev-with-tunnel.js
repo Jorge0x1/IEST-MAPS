@@ -1,9 +1,12 @@
+const fs = require('node:fs')
+const path = require('node:path')
 const { spawn, spawnSync } = require('node:child_process')
 const readline = require('node:readline')
 
 const API_PORT = 3001
 const WEB_PORT = 5174
 const isWindows = process.platform === 'win32'
+const localCloudflaredPath = path.resolve(__dirname, 'bin', isWindows ? 'cloudflared.exe' : 'cloudflared')
 
 const children = []
 
@@ -67,10 +70,19 @@ function shutdown(code = 0) {
   setTimeout(() => process.exit(code), 500)
 }
 
+function getCloudflaredCommand() {
+  if (fs.existsSync(localCloudflaredPath)) {
+    return localCloudflaredPath
+  }
+
+  return 'cloudflared'
+}
+
 function isCloudflaredAvailable() {
+  const command = getCloudflaredCommand()
   const probe = spawnSync(
-    isWindows ? 'cmd.exe' : 'cloudflared',
-    isWindows ? ['/d', '/s', '/c', 'cloudflared --version'] : ['--version'],
+    isWindows && command === 'cloudflared' ? 'cmd.exe' : command,
+    isWindows && command === 'cloudflared' ? ['/d', '/s', '/c', 'cloudflared --version'] : ['--version'],
     {
       encoding: 'utf8',
       shell: false,
@@ -116,13 +128,19 @@ async function main() {
   })
 
   if (isCloudflaredAvailable()) {
+    const cloudflaredCommand = getCloudflaredCommand()
     const tunnelArgs = isWindows
       ? ['/d', '/s', '/c', `cloudflared --url ${webUrl} --no-autoupdate`]
       : ['--url', webUrl, '--no-autoupdate']
 
-    spawnProcess('TUNNEL', isWindows ? 'cmd.exe' : 'cloudflared', tunnelArgs)
+    if (isWindows && cloudflaredCommand !== 'cloudflared') {
+      spawnProcess('TUNNEL', cloudflaredCommand, ['--url', webUrl, '--no-autoupdate'])
+    } else {
+      spawnProcess('TUNNEL', isWindows ? 'cmd.exe' : 'cloudflared', tunnelArgs)
+    }
   } else {
     console.warn('[TUNNEL] cloudflared no está instalado o no está en PATH. Se continúa sin túnel.')
+    console.warn(`[TUNNEL] También se buscó binario local en: ${localCloudflaredPath}`)
     console.log('==> Usa npm run dev:no-tunnel si solo quieres API + web local.')
   }
 }
