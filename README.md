@@ -14,6 +14,8 @@ Mapa interactivo del campus con funciones para administradores y guardias.
 - npm 10+
 - MySQL o MariaDB
 
+Nota: si usas XAMPP, solo necesitas tener encendido el servicio de MySQL/MariaDB. La app no requiere Apache para funcionar.
+
 ## Instalacion
 
 Git Bash en vscode:
@@ -39,6 +41,10 @@ copy iestmaps_react\.env.example iestmaps_react\.env
 ```
 
 ## Base de datos
+
+La base se prepara de forma automática al ejecutar `npm run dev` o `npm run dev:no-tunnel`. Solo asegurate de antes levantar XAMPP
+
+Si quieres hacerlo manualmente, también puedes usar phpMyAdmin o la CLI de MySQL.
 
 ### phpMyAdmin
 
