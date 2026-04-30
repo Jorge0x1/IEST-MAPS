@@ -98,7 +98,6 @@ async function main() {
   process.on('SIGTERM', () => shutdown(0))
 
   const webUrl = `http://localhost:${WEB_PORT}`
-  const apiUrl = `http://localhost:${API_PORT}/api`
 
   console.log('==> Preparando arranque con túnel...')
   console.log(`==> API en puerto ${API_PORT}, frontend en puerto ${WEB_PORT}`)
@@ -123,18 +122,18 @@ async function main() {
   spawnProcess('WEB', isWindows ? 'cmd.exe' : 'npm', webArgs, {
     env: {
       ...process.env,
-      VITE_API_BASE_URL: apiUrl,
+      VITE_API_BASE_URL: '/api',
     },
   })
 
   if (isCloudflaredAvailable()) {
     const cloudflaredCommand = getCloudflaredCommand()
     const tunnelArgs = isWindows
-      ? ['/d', '/s', '/c', `cloudflared --url ${webUrl} --no-autoupdate`]
-      : ['--url', webUrl, '--no-autoupdate']
+      ? ['/d', '/s', '/c', `cloudflared --protocol http2 --url ${webUrl} --no-autoupdate`]
+      : ['--protocol', 'http2', '--url', webUrl, '--no-autoupdate']
 
     if (isWindows && cloudflaredCommand !== 'cloudflared') {
-      spawnProcess('TUNNEL', cloudflaredCommand, ['--url', webUrl, '--no-autoupdate'])
+      spawnProcess('TUNNEL', cloudflaredCommand, ['--protocol', 'http2', '--url', webUrl, '--no-autoupdate'])
     } else {
       spawnProcess('TUNNEL', isWindows ? 'cmd.exe' : 'cloudflared', tunnelArgs)
     }

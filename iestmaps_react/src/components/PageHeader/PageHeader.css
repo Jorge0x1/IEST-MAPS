@@ -225,3 +225,22 @@
     height: 2.15rem;
   }
 }
+
+.page-header--visitor {
+  background: transparent !important;
+  color: #333333 !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.page-header--visitor .page-header-title {
+  color: #333333 !important;
+}
+
+.page-header--visitor .page-header h1 {
+  color: #333333 !important;
+}
+
+.page-header--visitor .page-header-user {
+  color: #333333 !important;
+}

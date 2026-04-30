@@ -10,6 +10,7 @@ interface PageHeaderProps {
   onAction?: () => void
   secondaryActionLabel?: string
   onSecondaryAction?: () => void
+  variant?: 'default' | 'visitor'
 }
 
 function PageHeader({
@@ -20,6 +21,7 @@ function PageHeader({
   onAction,
   secondaryActionLabel,
   onSecondaryAction,
+  variant = 'default',
 }: PageHeaderProps) {
   // estados del menu de perfil (abierto/cerrado)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -159,7 +161,7 @@ function PageHeader({
   }, [isConfirmOpen])
 
   return (
-    <>
+    <>{`page-header ${variant === 'visitor' ? 'page-header--visitor' : ''}`}
       <header className="page-header">
         <div className="page-header-bar">
         <div />
