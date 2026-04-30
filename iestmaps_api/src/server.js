@@ -78,7 +78,7 @@ app.get('/api/google-auth-url', (req, res) => {
     response_type: 'code',
     scope: 'email profile',
     access_type: 'offline',
-    prompt: 'select_account consent',
+    prompt: 'select_account',
   })
 
   if (allowedDomain) {

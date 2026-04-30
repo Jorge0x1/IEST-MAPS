@@ -5,7 +5,7 @@
   "scripts": {
     "setup": "npm install && npm --prefix iestmaps_api install && npm --prefix iestmaps_react install && node scripts/install-cloudflared.js",
     "db:setup": "node scripts/db-setup.js",
-    "predev": "npm run db:setup",
+    "predev": "node scripts/kill-ports.js && npm run db:setup",
     "predev:api": "npm run db:setup",
     "predev:no-tunnel": "npm run db:setup",
     "dev": "node scripts/dev-with-tunnel.js",

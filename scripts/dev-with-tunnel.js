@@ -1,9 +1,8 @@
-const net = require('node:net')
 const { spawn, spawnSync } = require('node:child_process')
 const readline = require('node:readline')
 
-const DEFAULT_API_PORT = 3001
-const DEFAULT_WEB_PORT = 5174
+const API_PORT = 3001
+const WEB_PORT = 5174
 const isWindows = process.platform === 'win32'
 
 const children = []
@@ -68,29 +67,6 @@ function shutdown(code = 0) {
   setTimeout(() => process.exit(code), 500)
 }
 
-function findAvailablePort(startPort) {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer()
-    server.unref()
-
-    server.once('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        resolve(findAvailablePort(startPort + 1))
-        return
-      }
-
-      reject(error)
-    })
-
-    server.listen(startPort, () => {
-      const address = server.address()
-      server.close(() => {
-        resolve(typeof address === 'object' && address ? address.port : startPort)
-      })
-    })
-  })
-}
-
 function isCloudflaredAvailable() {
   const probe = spawnSync(
     isWindows ? 'cmd.exe' : 'cloudflared',
@@ -106,16 +82,14 @@ function isCloudflaredAvailable() {
 }
 
 async function main() {
-  const apiPort = await findAvailablePort(DEFAULT_API_PORT)
-  const webPort = await findAvailablePort(DEFAULT_WEB_PORT)
-  const webUrl = `http://localhost:${webPort}`
-  const apiBaseUrl = `http://localhost:${apiPort}/api`
-
   process.on('SIGINT', () => shutdown(0))
   process.on('SIGTERM', () => shutdown(0))
 
+  const webUrl = `http://localhost:${WEB_PORT}`
+  const apiUrl = `http://localhost:${API_PORT}/api`
+
   console.log('==> Preparando arranque con túnel...')
-  console.log(`==> API en puerto ${apiPort}, web en puerto ${webPort}`)
+  console.log(`==> API en puerto ${API_PORT}, frontend en puerto ${WEB_PORT}`)
   console.log('==> Si cloudflared imprime la URL, también verás una línea TUNNEL URL arriba.')
 
   const apiArgs = isWindows
@@ -123,13 +97,13 @@ async function main() {
     : ['--prefix', 'iestmaps_api', 'run', 'dev']
 
   const webArgs = isWindows
-    ? ['/d', '/s', '/c', `npm --prefix iestmaps_react run dev -- --port ${webPort} --strictPort`]
-    : ['--prefix', 'iestmaps_react', 'run', 'dev', '--', '--port', String(webPort), '--strictPort']
+    ? ['/d', '/s', '/c', `npm --prefix iestmaps_react run dev -- --port ${WEB_PORT} --strictPort`]
+    : ['--prefix', 'iestmaps_react', 'run', 'dev', '--', '--port', String(WEB_PORT), '--strictPort']
 
   spawnProcess('API', isWindows ? 'cmd.exe' : 'npm', apiArgs, {
     env: {
       ...process.env,
-      PORT: String(apiPort),
+      PORT: String(API_PORT),
       FRONTEND_URL: webUrl,
     },
   })
@@ -137,7 +111,7 @@ async function main() {
   spawnProcess('WEB', isWindows ? 'cmd.exe' : 'npm', webArgs, {
     env: {
       ...process.env,
-      VITE_API_BASE_URL: apiBaseUrl,
+      VITE_API_BASE_URL: apiUrl,
     },
   })
 
