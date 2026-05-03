@@ -1,5 +1,5 @@
 // componente que visualiza el mapa con la ruta calculada
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './MapGrid.css'
@@ -12,6 +12,11 @@ interface MapGridProps {
   routeEnd: string | null
   pisosEnRuta: string[]
   onFloorChange: (floor: 1 | 2) => void
+}
+
+type PulseMarker = L.CircleMarker & {
+  __pulseCirlceInterval?: number
+  __pulseCircle?: L.Circle
 }
 
 function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, onFloorChange }: MapGridProps) {
@@ -33,23 +38,38 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
     return routeNodesOnFloor.map((node) => [node.y, node.x] as [number, number])
   }, [routeNodesOnFloor])
 
-  const syncMapBounds = (map: L.Map) => {
+  const syncMapBounds = useCallback((map: L.Map, hasRoute: boolean = false) => {
+    if (hasRoute) {
+      // Con ruta: libertad total de zoom, sin restricciones de minZoom
+      map.setMinZoom(-1.5)
+      return
+    }
+    
+    // Sin ruta: limitar zoom out para no alejarse demasiado del mapa
     const fittedZoom = map.getBoundsZoom(bounds, true)
     const viewportWidth = window.innerWidth
-    const responsiveExtraZoomOut = viewportWidth <= 560
-      ? 1.25
-      : viewportWidth <= 768
-        ? 0.75
-        : viewportWidth <= 1280
-          ? 0.35
-          : 0.51
+    const responsiveExtraZoomOut = viewportWidth <= 560 ? 0.8 : 0.5
     const minZoom = fittedZoom - responsiveExtraZoomOut
 
     map.setMinZoom(minZoom)
     if (map.getZoom() < minZoom) {
       map.setZoom(minZoom)
     }
-  }
+  }, [bounds])
+
+  const applyInitialEmptyRouteZoom = useCallback((map: L.Map) => {
+    if (routeLatLngs.length > 0) {
+      return
+    }
+
+    const viewportWidth = window.innerWidth
+    if (viewportWidth > 768) {
+      return
+    }
+
+    const extraZoomIn = viewportWidth <= 560 ? 2.0 : 1.6
+    map.setZoom(Math.min(map.getMaxZoom(), map.getZoom() + extraZoomIn))
+  }, [routeLatLngs.length])
 
   useEffect(() => {
     if (!mapRef.current || leafletMapRef.current) {
@@ -76,7 +96,8 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
     routeLayerRef.current = L.layerGroup().addTo(map)
     map.setMaxBounds(bounds)
     map.fitBounds(bounds)
-    syncMapBounds(map)
+    syncMapBounds(map, false)
+    applyInitialEmptyRouteZoom(map)
 
     return () => {
       map.remove()
@@ -84,7 +105,7 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
       imageLayerRef.current = null
       routeLayerRef.current = null
     }
-  }, [activeFloor, bounds])
+  }, [activeFloor, applyInitialEmptyRouteZoom, bounds, syncMapBounds])
 
   useEffect(() => {
     const map = leafletMapRef.current
@@ -103,8 +124,9 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
     map.setMaxBounds(bounds)
     map.invalidateSize()
     map.fitBounds(bounds)
-    syncMapBounds(map)
-  }, [activeFloor, bounds])
+    syncMapBounds(map, false)
+    applyInitialEmptyRouteZoom(map)
+  }, [activeFloor, applyInitialEmptyRouteZoom, bounds, syncMapBounds])
 
   useEffect(() => {
     const map = leafletMapRef.current
@@ -115,7 +137,7 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
 
     layerGroup.clearLayers()
 
-    const markers: L.CircleMarker[] = []
+    const markers: PulseMarker[] = []
 
     if (routeLatLngs.length > 1) {
       // base route line
@@ -141,7 +163,7 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
 
       // try to adapt animation duration to the actual path length for smoother speed
       try {
-        const pathEl = (animatedLine as any)._path as SVGPathElement | undefined
+        const pathEl = (animatedLine as L.Polyline & { _path?: SVGPathElement })._path
         if (pathEl && pathEl.getTotalLength) {
           const len = Math.max(1, pathEl.getTotalLength())
           const baseDuration = Math.max(0.8, Math.min(6, len / 150))
@@ -159,7 +181,7 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
           // set the animation explicitly to avoid layout thrash when updating duration
           pathEl.style.animation = `${duration}s linear infinite route-dots-move`
         }
-      } catch (e) {
+      } catch {
         // ignore if DOM not ready
       }
 
@@ -211,6 +233,7 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
           radius: baseRadius,
           className: 'staircase-marker',
         }).addTo(layerGroup)
+        const staircaseMarker = staircase as PulseMarker
 
         // crear círculo pulsante alrededor del marcador
         const pulseCircle = L.circle([node.y, node.x], {
@@ -237,8 +260,8 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
         }, 30)
 
         // guardar intervalo en el marcador para limpiar después
-        ;(staircase as any).__pulseCirlceInterval = animatePulse
-        ;(staircase as any).__pulseCircle = pulseCircle
+        staircaseMarker.__pulseCirlceInterval = animatePulse
+        staircaseMarker.__pulseCircle = pulseCircle
 
         const handleFloorChange = () => {
           // cambiar de piso cuando se hace click en escalera o en el círculo
@@ -252,14 +275,25 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
         staircase.bindTooltip('Haz click para cambiar de piso', { permanent: false })
         pulseCircle.bindTooltip('Haz click para cambiar de piso', { permanent: false })
 
-        markers.push(staircase)
+        markers.push(staircaseMarker)
       })
 
-      map.fitBounds(L.polyline(routeLatLngs).getBounds(), { padding: [50, 50] })
-      syncMapBounds(map)
+      const routeBounds = L.polyline(routeLatLngs).getBounds()
+      const viewportWidth = window.innerWidth
+      const mobilePadding = viewportWidth <= 560 ? [140, 140] as [number, number] : [50, 50] as [number, number]
+      map.fitBounds(routeBounds, { padding: mobilePadding })
+
+      syncMapBounds(map, true)
+
+      if (viewportWidth <= 768) {
+        const mobileZoomOut = viewportWidth <= 560 ? 0.3 : 0.15
+        const currentZoom = map.getZoom()
+        const targetZoom = Math.max(map.getMinZoom(), currentZoom - mobileZoomOut)
+        map.setZoom(targetZoom)
+      }
     } else {
       map.fitBounds(bounds)
-      syncMapBounds(map)
+      syncMapBounds(map, false)
     }
 
     const handleZoomEnd = () => {
@@ -278,7 +312,7 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
     map.on('zoomend', handleZoomEnd)
     const handleResize = () => {
       map.invalidateSize()
-      syncMapBounds(map)
+      syncMapBounds(map, routeLatLngs.length > 1)
     }
 
     window.addEventListener('resize', handleResize)
@@ -287,13 +321,13 @@ function MapGrid({ activeFloor, routePath, routeStart, routeEnd, pisosEnRuta, on
       window.removeEventListener('resize', handleResize)
       // limpiar intervalos de animación de pulso
       markers.forEach((marker) => {
-        const interval = (marker as any).__pulseCirlceInterval
+        const interval = marker.__pulseCirlceInterval
         if (interval) {
           clearInterval(interval)
         }
       })
     }
-  }, [activeFloor, bounds, routeLatLngs, routeNodesOnFloor, pisosEnRuta, routeEnd, routeStart, onFloorChange, currentFloor])
+  }, [activeFloor, bounds, currentFloor, onFloorChange, pisosEnRuta, routeEnd, routeLatLngs, routeNodesOnFloor, routePath, routeStart, syncMapBounds])
 
   return (
     <div className="map-grid-wrapper">

@@ -1,4 +1,6 @@
 .guard-content {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1.5rem 1rem 2rem;
   display: grid;
   justify-content: center;
@@ -227,10 +229,15 @@
 
 .guard-history-content {
   display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
   justify-content: center;
   padding: 1.4rem 1.5rem 2rem;
   /* match guard form page background */
   background-color: #0f2126;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .guard-history-card {
@@ -290,19 +297,30 @@
 }
 
 @media (max-width: 768px) {
+  .guard-content.guard-register-content {
+    height: calc(100dvh - 5.9rem);
+    overflow: hidden;
+    padding: 0.75rem;
+    align-content: center;
+  }
+
   .guard-card {
     min-height: auto;
     width: min(480px, 96vw);
-    padding: 1.2rem;
+    padding: 1.05rem 1rem 1.1rem;
   }
 
   .guard-register-card {
-    width: min(300px, 95vw);
-    padding: 1.1rem 1rem 1.15rem;
+    width: min(300px, 90vw);
+    padding: 1rem 0.95rem 1.05rem;
   }
 
   .guard-register-form {
-    gap: 0.75rem;
+    gap: 0.68rem;
+  }
+
+  .guard-register-form input {
+    font-size: 16px;
   }
 
   .guard-history-content {

@@ -7,6 +7,10 @@
   max-width: 100%;
   box-sizing: border-box;
   margin: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-card {
@@ -234,7 +238,7 @@
 
   .admin-table {
     table-layout: auto;
-    min-width: 760px;
+    min-width: 600px;
     width: 100%;
     max-width: none;
   }
@@ -519,7 +523,9 @@
   }
 
   .admin-card {
-    max-width: 100%;
+    width: calc(100% - 0.6rem);
+    max-width: calc(100vw - 0.7rem);
+    margin-inline: auto;
     padding: 0.5rem 0.45rem;
     border-radius: 10px;
   }
@@ -570,11 +576,13 @@
 
 @media (max-width: 560px) {
   .admin-content {
-    padding: 0.35rem 0.2rem 0.45rem;
+    padding: 0.35rem 0.4rem 0.45rem;
   }
 
   .admin-card {
-    max-width: 100%;
+    width: calc(100% - 0.8rem);
+    max-width: calc(100vw - 0.9rem);
+    margin-inline: auto;
     padding: 0.45rem 0.4rem;
   }
 
@@ -598,8 +606,18 @@
     overflow-x: hidden;
   }
 
+  .admin-card.admin-card-wide {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-card.admin-card-wide .admin-table-pair {
+    padding-bottom: 0.2rem;
+  }
+
   .admin-table-wrap {
-    margin-right: -0.1rem;
+    width: calc(100% - 0.8rem);
+    margin: 0 auto 0.05rem;
   }
 
   .admin-create-content {

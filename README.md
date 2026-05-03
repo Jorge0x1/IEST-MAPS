@@ -14,7 +14,7 @@ Mapa interactivo del campus con funciones para administradores y guardias.
 - npm 10+
 - MySQL o MariaDB
 
-Nota: si usas XAMPP, solo necesitas tener encendido el servicio de MySQL/MariaDB. La app no requiere Apache para funcionar.
+Nota: Es necesario encender el servicio de MySQL/MariaDB en XAMPP. La app no requiere Apache para funcionar.
 
 ## Instalacion
 
@@ -33,7 +33,7 @@ npm run setup
 
 `npm run setup` intenta instalar `cloudflared` automáticamente (en Windows con `winget` o `choco`, en macOS con `brew`).
 Si en Windows no logra instalarlo globalmente, descarga un binario local en `scripts/bin/cloudflared.exe` y `npm run dev` lo usa automáticamente.
-Si aun asi no se puede, el proyecto igual puede correr con `npm run dev:no-tunnel`.
+Si aun asi no se puede, el proyecto igual puede correr con `npm run dev:no-tunnel`, aunque el tunel es necesario para pruebas con el QR.
 
 ## Variables de entorno
 
