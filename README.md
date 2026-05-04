@@ -54,7 +54,6 @@ Si quieres hacerlo manualmente, también puedes usar phpMyAdmin o la CLI de MySQ
 
 1. Crea una base de datos llamada `iest_maps`.
 2. Importa el archivo `iestmaps_react/iest_maps_db.sql`.
-3. Verifica que la conexion de `iestmaps_api/.env` apunte a esa base.
 
 ### MySQL CLI
 
@@ -68,7 +67,7 @@ mysql -u root -p iest_maps < iestmaps_react/iest_maps_db.sql
 ```bash
 npm run dev:no-tunnel
 ```
-Opcional con tunel cloudflared (para probar qr del guardia):
+Opcional con tunel cloudflared (necesario para probar qr del guardia):
 ```bash
 npm run dev
 ```
@@ -76,3 +75,10 @@ npm run dev
 
 Cuando uses `npm run dev`, busca la línea `TUNNEL URL:` en la terminal; ahí aparece el enlace público.
 
+## Descripcion
+
+Sistema institucional, cuenta con cuatro tipo de usuarios diferentes: administrador / guardia / usuarios "comunes" / visitantes.
+*   El administrador lleva el registro de salones y usuarios del instituto, a su vez puede agregar, eliminar y modificar estos mismos.
+*   El guardia puede registrar visitantes y llevar un control de estos mismos, ofrece a los visitantes un qr pára un facil acceso al sitio.
+*   Los usuarios comunes pueden ver un mapa del plantel el cual puede trazar rutas de un punto "A" a "B".
+*   Los visitantes pueden ver la misma vista que los usuarios comunes con la diferencia que el trazado de rutas esta limitado a la que el guardia le asigno.
