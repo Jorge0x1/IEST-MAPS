@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("rol")
+    .select("rol, activo")
     .eq("id", data.user.id)
     .single();
 
@@ -31,6 +31,13 @@ export async function GET(request: NextRequest) {
     await supabase.auth.signOut();
     return NextResponse.redirect(
       `${origin}/login?error=${encodeURIComponent("No se encontró el perfil del usuario")}`,
+    );
+  }
+
+  if (!profile.activo) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(
+      `${origin}/login?error=${encodeURIComponent("El acceso de esta cuenta está desactivado. Contacta a un administrador.")}`,
     );
   }
 

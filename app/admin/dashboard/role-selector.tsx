@@ -31,7 +31,6 @@ export function RoleSelector({
           <option value="administrador">Administrador</option>
           <option value="guardia">Guardia</option>
           <option value="alumno">Alumno</option>
-          <option value="visitante">Visitante</option>
         </select>
         <button
           type="submit"

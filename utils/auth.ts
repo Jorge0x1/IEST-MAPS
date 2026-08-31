@@ -32,11 +32,11 @@ export async function obtenerSesionConPerfil() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, rol, nombre, correo")
+    .select("id, rol, nombre, correo, activo")
     .eq("id", userId)
     .single();
 
-  if (profileError || !profile) {
+  if (profileError || !profile || !profile.activo) {
     return null;
   }
 
@@ -46,6 +46,7 @@ export async function obtenerSesionConPerfil() {
       rol: RolUsuario;
       nombre: string | null;
       correo: string | null;
+      activo: boolean;
     },
   };
 }
