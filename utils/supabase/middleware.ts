@@ -32,11 +32,13 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
 
-  const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
+  const isPublicRoute =
+    request.nextUrl.pathname.startsWith("/login") ||
+    request.nextUrl.pathname.startsWith("/auth/callback");
 
   // TODO: cuando tengamos el rol en los claims, aquí también se puede
   // redirigir por rol (ej. un alumno tratando de entrar a /dashboard de admin).
-  if (!claims && !isLoginRoute) {
+  if (!claims && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
