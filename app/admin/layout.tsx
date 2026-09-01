@@ -1,6 +1,6 @@
 import { SessionHeader } from "@/app/components/session-header";
 import { requerirRol } from "@/utils/auth";
-import Link from "next/link";
+import { AdminNav } from "./admin-nav";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await requerirRol("administrador");
@@ -11,12 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <p className="text-lg font-bold tracking-wide">IEST-MAPS</p>
           <p className="mt-1 text-xs text-slate-400">Panel de administración</p>
         </div>
-        <nav className="mt-6 space-y-2" aria-label="Navegación administrativa">
-          <Link href="/admin/dashboard" className="block rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold">Usuarios y accesos</Link>
-          <span className="block cursor-not-allowed rounded-xl px-4 py-3 text-sm text-slate-500">Edificios <small className="float-right">Próximamente</small></span>
-          <span className="block cursor-not-allowed rounded-xl px-4 py-3 text-sm text-slate-500">Nodos del mapa <small className="float-right">Próximamente</small></span>
-          <span className="block cursor-not-allowed rounded-xl px-4 py-3 text-sm text-slate-500">Conexiones <small className="float-right">Próximamente</small></span>
-        </nav>
+        <AdminNav />
         <div className="mt-auto rounded-xl bg-white/5 p-4 text-xs leading-5 text-slate-400">Los cambios de rol se aplican inmediatamente en el siguiente acceso del usuario.</div>
       </aside>
       <div className="min-w-0 flex-1">
