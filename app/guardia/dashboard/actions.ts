@@ -8,7 +8,13 @@ import { createClient } from "@/utils/supabase/server";
 export type EstadoRegistroVisita = {
   ok: boolean;
   mensaje: string;
-  acceso?: string;
+  pase?: {
+    nombre: string;
+    destino: string;
+    motivo: string;
+    acceso: string;
+    expiraEn: string;
+  };
 };
 
 export async function registrarVisita(
@@ -38,6 +44,16 @@ export async function registrarVisita(
   const tokenHash = createHash("sha256").update(token).digest("hex");
   const expiracion = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
   const supabase = await createClient();
+  const { data: edificio, error: edificioError } = await supabase
+    .from("edificios")
+    .select("nombre")
+    .eq("id", destinoEdificioId)
+    .single();
+
+  if (edificioError || !edificio) {
+    return { ok: false, mensaje: "El edificio seleccionado no está disponible." };
+  }
+
   const { error } = await supabase.from("registro_visitante").insert({
     guardia_profile_id: guardia.id,
     nombre,
@@ -56,7 +72,13 @@ export async function registrarVisita(
   return {
     ok: true,
     mensaje: "Visita registrada. Comparte este acceso con el visitante.",
-    acceso: `/visitante/ruta?token=${encodeURIComponent(token)}`,
+    pase: {
+      nombre,
+      destino: edificio.nombre,
+      motivo,
+      acceso: `/visitante/ruta?token=${encodeURIComponent(token)}`,
+      expiraEn: expiracion,
+    },
   };
 }
 
