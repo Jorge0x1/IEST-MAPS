@@ -6,10 +6,34 @@ import { VisitorPass } from "./visitor-pass";
 
 const estadoInicial: EstadoRegistroVisita = { ok: false, mensaje: "" };
 
+export type NodoDestino = {
+  id: string;
+  nombre: string;
+  piso: number;
+  edificios: { nombre: string } | null;
+};
+
+export type NodoOrigen = {
+  id: string;
+  nombre: string;
+  edificios: { nombre: string } | null;
+};
+
+function agruparPorEdificio<T extends { edificios: { nombre: string } | null }>(nodos: T[]) {
+  const grupos = new Map<string, T[]>();
+  for (const nodo of nodos) {
+    const etiqueta = nodo.edificios?.nombre ?? "Sin edificio";
+    grupos.set(etiqueta, [...(grupos.get(etiqueta) ?? []), nodo]);
+  }
+  return [...grupos.entries()];
+}
+
 export function VisitorForm({
-  edificios,
+  destinos,
+  entradas,
 }: {
-  edificios: Array<{ id: string; nombre: string }>;
+  destinos: NodoDestino[];
+  entradas: NodoOrigen[];
 }) {
   const [estado, action, pendiente] = useActionState(registrarVisita, estadoInicial);
   const formRef = useRef<HTMLFormElement>(null);
@@ -20,6 +44,10 @@ export function VisitorForm({
 
   const campo =
     "rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-950 outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100";
+
+  const gruposDestino = agruparPorEdificio(destinos);
+  const gruposEntrada = agruparPorEdificio(entradas);
+  const sinOpciones = destinos.length === 0 || entradas.length === 0;
 
   return (
     <div>
@@ -41,20 +69,37 @@ export function VisitorForm({
         </label>
 
         <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-          Destino
-          <select
-            name="destino_edificio_id"
-            required
-            defaultValue=""
-            className={`${campo} bg-white`}
-          >
+          Entrada de acceso
+          <select name="origen_nodo_id" required defaultValue="" className={`${campo} bg-white`}>
             <option value="" disabled>
-              Selecciona un edificio
+              Selecciona la entrada
             </option>
-            {edificios.map((edificio) => (
-              <option key={edificio.id} value={edificio.id}>
-                {edificio.nombre}
-              </option>
+            {gruposEntrada.map(([edificio, nodos]) => (
+              <optgroup key={edificio} label={edificio}>
+                {nodos.map((nodo) => (
+                  <option key={nodo.id} value={nodo.id}>
+                    {nodo.nombre}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+
+        <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+          Destino
+          <select name="destino_nodo_id" required defaultValue="" className={`${campo} bg-white`}>
+            <option value="" disabled>
+              Selecciona un destino
+            </option>
+            {gruposDestino.map(([edificio, nodos]) => (
+              <optgroup key={edificio} label={edificio}>
+                {nodos.map((nodo) => (
+                  <option key={nodo.id} value={nodo.id}>
+                    {nodo.nombre} · Piso {nodo.piso}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>
@@ -72,15 +117,15 @@ export function VisitorForm({
         </label>
 
         <button
-          disabled={pendiente || edificios.length === 0}
+          disabled={pendiente || sinOpciones}
           className="rounded-lg bg-sky-700 px-5 py-2.5 font-semibold text-white hover:bg-sky-800 disabled:bg-slate-300"
         >
           {pendiente ? "Registrando…" : "Registrar visita"}
         </button>
 
-        {edificios.length === 0 ? (
+        {sinOpciones ? (
           <p className="text-sm text-amber-700">
-            Un administrador debe registrar al menos un edificio.
+            Un administrador debe registrar al menos un destino buscable y una entrada.
           </p>
         ) : null}
         {estado.mensaje ? (

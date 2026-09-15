@@ -10,6 +10,8 @@ type VisitaPublica = {
   hora_entrada: string;
   hora_salida: string | null;
   destino_nombre: string | null;
+  destino_piso: number | null;
+  origen_nombre: string | null;
 };
 
 export default async function VisitanteRutaPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
@@ -28,6 +30,12 @@ export default async function VisitanteRutaPage({ searchParams }: { searchParams
   }
 
   const activa = visita.estado === "activo";
+  const destinoConPiso = visita.destino_nombre
+    ? visita.destino_piso !== null
+      ? `${visita.destino_nombre} · Piso ${visita.destino_piso}`
+      : visita.destino_nombre
+    : "Destino por confirmar";
+
   return (
     <main className="min-h-screen bg-slate-950 px-5 py-10">
       <section className="mx-auto max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl">
@@ -35,7 +43,8 @@ export default async function VisitanteRutaPage({ searchParams }: { searchParams
         <div className="p-7">
           <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${activa ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{activa ? "Visita activa" : "Visita finalizada"}</span>
           <dl className="mt-6 grid gap-5">
-            <div><dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">Destino</dt><dd className="mt-1 text-lg font-semibold text-slate-950">{visita.destino_nombre ?? "Destino por confirmar"}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">Destino</dt><dd className="mt-1 text-lg font-semibold text-slate-950">{destinoConPiso}</dd></div>
+            {visita.origen_nombre ? <div><dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">Entra por</dt><dd className="mt-1 text-slate-700">{visita.origen_nombre}</dd></div> : null}
             <div><dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">Motivo</dt><dd className="mt-1 text-slate-700">{visita.motivo ?? "No especificado"}</dd></div>
             <div><dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">Hora de entrada</dt><dd className="mt-1 text-slate-700">{new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(visita.hora_entrada))}</dd></div>
           </dl>

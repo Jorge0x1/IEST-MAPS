@@ -1,15 +1,28 @@
 import { finalizarVisita } from "./actions";
-import { VisitorForm } from "./visitor-form";
+import { VisitorForm, type NodoDestino, type NodoOrigen } from "./visitor-form";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 
+type Nodo = {
+  id: string;
+  nombre: string;
+  tipo: string;
+  piso: number;
+  buscable: boolean;
+  edificio_id: string | null;
+  edificios: { nombre: string } | null;
+};
+
 type Edificio = { id: string; nombre: string };
+
 type Visita = {
   id: string;
   nombre: string;
   telefono: string | null;
   motivo: string | null;
   destino_edificio_id: string | null;
+  destino_nodo_id: string | null;
+  origen_nodo_id: string | null;
   estado: "activo" | "finalizado";
   hora_entrada: string;
   hora_salida: string | null;
@@ -22,13 +35,53 @@ function fechaHora(valor: string) {
 export default async function GuardiaDashboardPage() {
   await requerirRol("guardia");
   const supabase = await createClient();
-  const [edificiosResult, visitasResult] = await Promise.all([
+  const [nodosResult, edificiosResult, visitasResult] = await Promise.all([
+    supabase
+      .from("nodos")
+      .select("id, nombre, tipo, piso, buscable, edificio_id, edificios(nombre)")
+      .order("nombre"),
     supabase.from("edificios").select("id, nombre").order("nombre"),
-    supabase.from("registro_visitante").select("id, nombre, telefono, motivo, destino_edificio_id, estado, hora_entrada, hora_salida").order("hora_entrada", { ascending: false }).limit(100),
+    supabase
+      .from("registro_visitante")
+      .select(
+        "id, nombre, telefono, motivo, destino_edificio_id, destino_nodo_id, origen_nodo_id, estado, hora_entrada, hora_salida",
+      )
+      .order("hora_entrada", { ascending: false })
+      .limit(100),
   ]);
+
+  const nodos = (nodosResult.data ?? []) as unknown as Nodo[];
   const edificios = (edificiosResult.data ?? []) as Edificio[];
   const visitas = (visitasResult.data ?? []) as Visita[];
+
+  const destinosBuscables: NodoDestino[] = nodos
+    .filter((nodo) => nodo.buscable)
+    .map((nodo) => ({ id: nodo.id, nombre: nodo.nombre, piso: nodo.piso, edificios: nodo.edificios }));
+  const entradas: NodoOrigen[] = nodos
+    .filter((nodo) => nodo.tipo === "entrada")
+    .map((nodo) => ({ id: nodo.id, nombre: nodo.nombre, edificios: nodo.edificios }));
+
+  const nodoPorId = new Map(nodos.map((nodo) => [nodo.id, nodo]));
   const nombreEdificio = new Map(edificios.map((edificio) => [edificio.id, edificio.nombre]));
+
+  function destinoTexto(visita: Visita) {
+    if (visita.destino_nodo_id) {
+      const nodo = nodoPorId.get(visita.destino_nodo_id);
+      if (nodo) {
+        return `${nodo.nombre} · ${nodo.edificios?.nombre ?? "Edificio no disponible"} · Piso ${nodo.piso}`;
+      }
+    }
+    if (visita.destino_edificio_id) {
+      return nombreEdificio.get(visita.destino_edificio_id) ?? "Destino no disponible";
+    }
+    return "Destino no disponible";
+  }
+
+  function origenTexto(visita: Visita) {
+    if (!visita.origen_nodo_id) return null;
+    return nodoPorId.get(visita.origen_nodo_id)?.nombre ?? null;
+  }
+
   const activas = visitas.filter((visita) => visita.estado === "activo");
   const finalizadasHoy = visitas.filter((visita) => visita.hora_salida && new Date(visita.hora_salida).toDateString() === new Date().toDateString()).length;
 
@@ -43,10 +96,10 @@ export default async function GuardiaDashboardPage() {
       </section>
 
       <div className="grid items-start gap-8 xl:grid-cols-[360px_1fr]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-6"><div className="mb-5"><h2 className="font-semibold text-slate-950">Nueva visita</h2><p className="mt-1 text-sm text-slate-500">El enlace generado tendrá una vigencia de 12 horas.</p></div><VisitorForm edificios={edificios} /></section>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-6"><div className="mb-5"><h2 className="font-semibold text-slate-950">Nueva visita</h2><p className="mt-1 text-sm text-slate-500">El enlace generado tendrá una vigencia de 12 horas.</p></div><VisitorForm destinos={destinosBuscables} entradas={entradas} /></section>
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 p-5"><h2 className="font-semibold text-slate-950">Actividad reciente</h2><p className="mt-1 text-sm text-slate-500">Últimos {visitas.length} registros</p></div>
-          {visitasResult.error || edificiosResult.error ? <div className="m-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">No se pudieron cargar las visitas. Ejecuta primero la migración 0003.</div> : visitas.length === 0 ? <div className="px-6 py-16 text-center text-slate-500">Aún no hay visitas registradas.</div> : <div className="divide-y divide-slate-100">{visitas.map((visita) => <article key={visita.id} className="p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-slate-950">{visita.nombre}</h3><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${visita.estado === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{visita.estado === "activo" ? "Activa" : "Finalizada"}</span></div><p className="mt-1 text-sm text-slate-600">{nombreEdificio.get(visita.destino_edificio_id ?? "") ?? "Destino no disponible"} · {visita.motivo}</p><p className="mt-2 text-xs text-slate-500">Entrada: {fechaHora(visita.hora_entrada)}{visita.telefono ? ` · ${visita.telefono}` : ""}</p>{visita.hora_salida ? <p className="mt-1 text-xs text-slate-500">Salida: {fechaHora(visita.hora_salida)}</p> : null}</div>{visita.estado === "activo" ? <form action={finalizarVisita.bind(null, visita.id)}><button className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Finalizar visita</button></form> : null}</div></article>)}</div>}
+          {visitasResult.error || nodosResult.error || edificiosResult.error ? <div className="m-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">No se pudieron cargar las visitas. Ejecuta primero las migraciones pendientes.</div> : visitas.length === 0 ? <div className="px-6 py-16 text-center text-slate-500">Aún no hay visitas registradas.</div> : <div className="divide-y divide-slate-100">{visitas.map((visita) => { const origen = origenTexto(visita); return <article key={visita.id} className="p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-slate-950">{visita.nombre}</h3><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${visita.estado === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{visita.estado === "activo" ? "Activa" : "Finalizada"}</span></div><p className="mt-1 text-sm text-slate-600">{destinoTexto(visita)} · {visita.motivo}</p><p className="mt-2 text-xs text-slate-500">Entrada: {fechaHora(visita.hora_entrada)}{origen ? ` · Acceso por ${origen}` : ""}{visita.telefono ? ` · ${visita.telefono}` : ""}</p>{visita.hora_salida ? <p className="mt-1 text-xs text-slate-500">Salida: {fechaHora(visita.hora_salida)}</p> : null}</div>{visita.estado === "activo" ? <form action={finalizarVisita.bind(null, visita.id)}><button className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Finalizar visita</button></form> : null}</div></article>; })}</div>}
         </section>
       </div>
     </main>

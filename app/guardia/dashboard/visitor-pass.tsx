@@ -78,6 +78,10 @@ export function VisitorPass({ pase }: { pase: Pase }) {
             <p className="font-medium text-slate-900">{pase.destino}</p>
           </div>
           <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Entrada</p>
+            <p className="font-medium text-slate-900">{pase.origen}</p>
+          </div>
+          <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Motivo</p>
             <p className="text-sm text-slate-700">{pase.motivo}</p>
           </div>

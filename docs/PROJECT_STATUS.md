@@ -77,6 +77,8 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - [x] Activación y desactivación de usuarios.
 - [x] CRUD de edificios.
 - [x] Captura de nombre, descripción, latitud y longitud de edificios.
+- [x] CRUD de destinos/nodos con edificio, piso, tipo, alias y coordenadas.
+- [x] Clasificación de nodos entre destinos buscables y puntos auxiliares del recorrido.
 
 ### Guardia y visitantes
 
@@ -104,6 +106,8 @@ Las migraciones existentes y aplicadas son:
    activación y revocación de acceso.
 3. `0003_visitas_por_token.sql`: visitantes sin cuenta obligatoria, destino por edificio,
    hash y expiración del token, consulta pública controlada y finalización por token.
+4. `0004_catalogo_destinos.sql`: tipo de nodo `servicio`, marca de destino buscable e
+   índice para consultar el catálogo por edificio y piso.
 
 Cuando se agregue una migración, debe crearse un archivo nuevo. No se deben editar las
 migraciones ya aplicadas para cambiar una base existente.
@@ -161,15 +165,15 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 
 ### 1. Catálogo de destinos y grafo
 
-- [ ] Crear el CRUD administrativo de destinos/nodos.
-- [ ] Permitir los tipos entrada, pasillo, salón, oficina, baño, escalera, elevador,
+- [x] Crear el CRUD administrativo de destinos/nodos.
+- [x] Permitir los tipos entrada, pasillo, salón, oficina, baño, escalera, elevador,
   servicio y edificio.
-- [ ] Asociar cada destino con edificio y piso.
-- [ ] Definir cuáles nodos son buscables como destino y cuáles solo forman parte del
+- [x] Asociar cada destino con edificio y piso.
+- [x] Definir cuáles nodos son buscables como destino y cuáles solo forman parte del
   recorrido.
-- [ ] Agregar nombres alternativos o alias para búsquedas como “salón 204” o “servicios
+- [x] Agregar nombres alternativos o alias para búsquedas como “salón 204” o “servicios
   escolares”.
-- [ ] Validar coordenadas requeridas según el tipo de nodo.
+- [x] Validar las coordenadas requeridas por el esquema actual de nodos.
 - [ ] Crear el CRUD de conexiones entre nodos.
 - [ ] Evitar conexiones inválidas, duplicadas o de un nodo consigo mismo.
 - [ ] Representar escaleras y elevadores como conexiones entre pisos.
@@ -240,10 +244,9 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 
 ## Próximo bloque recomendado
 
-Construir el CRUD de destinos/nodos en el panel de administrador. El primer incremento
-debe permitir crear, editar, listar y eliminar destinos asociados a un edificio y piso,
-sin exigir todavía que el SVG o el mapa definitivo estén completos. Después se conecta
-el formulario del guardia a esos destinos específicos.
+Construir el CRUD de conexiones entre nodos, impidiendo duplicados y conexiones de un
+nodo consigo mismo. Después se conecta el formulario del guardia a destinos específicos
+y se definen los nodos de entrada que funcionarán como origen fijo de cada visita.
 
 ## Comandos habituales
 
