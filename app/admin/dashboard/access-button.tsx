@@ -1,18 +1,41 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { cambiarEstadoAcceso } from "./actions";
+import styles from "./dashboard.module.css";
 
 export function AccessButton({ profileId, activo }: { profileId: string; activo: boolean }) {
   const [pendiente, iniciarTransicion] = useTransition();
+  const [mensaje, setMensaje] = useState("");
+
+  function cambiarAcceso() {
+    setMensaje("");
+    iniciarTransicion(async () => {
+      try {
+        const resultado = await cambiarEstadoAcceso(profileId, !activo);
+        if (!resultado.ok) setMensaje(resultado.mensaje);
+      } catch {
+        setMensaje("No fue posible actualizar el acceso. Inténtalo nuevamente.");
+      }
+    });
+  }
+
   return (
-    <button
-      type="button"
-      disabled={pendiente}
-      onClick={() => iniciarTransicion(() => cambiarEstadoAcceso(profileId, !activo))}
-      className={`rounded-lg border px-3 py-2 text-sm font-semibold disabled:opacity-50 ${activo ? "border-red-200 text-red-700 hover:bg-red-50" : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"}`}
-    >
-      {pendiente ? "Procesando…" : activo ? "Desactivar" : "Reactivar"}
-    </button>
+    <div className={styles.accessControl}>
+      <button
+        type="button"
+        disabled={pendiente}
+        onClick={cambiarAcceso}
+        className={activo ? styles.dangerButton : styles.positiveButton}
+      >
+        {pendiente ? "Procesando…" : activo ? "Desactivar" : "Reactivar"}
+      </button>
+
+      {mensaje ? (
+        <p className={`${styles.inlineMessage} ${styles.inlineError}`} role="alert">
+          {mensaje}
+        </p>
+      ) : null}
+    </div>
   );
 }

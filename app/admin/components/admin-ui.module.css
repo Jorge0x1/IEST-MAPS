@@ -1,0 +1,157 @@
+.statCard {
+  position: relative;
+  min-height: 8.5rem;
+  overflow: hidden;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.statCard::before {
+  position: absolute;
+  width: 0.22rem;
+  border-radius: 999px;
+  background: var(--stat-tone);
+  content: "";
+  inset: 1rem auto 1rem 0;
+}
+
+.statBrand {
+  --stat-tone: var(--brand-primary);
+}
+
+.statSuccess {
+  --stat-tone: var(--success);
+}
+
+.statWarning {
+  --stat-tone: var(--warning);
+}
+
+.statDanger {
+  --stat-tone: var(--error);
+}
+
+.statInfo {
+  --stat-tone: var(--info);
+}
+
+.statLabel {
+  position: relative;
+  z-index: 1;
+  max-width: 11rem;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 640;
+  line-height: 1.4;
+}
+
+.statValue {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.6rem;
+  color: var(--text-primary);
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 760;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.statRoute {
+  position: absolute;
+  width: 5rem;
+  height: 4rem;
+  opacity: 0.28;
+  inset: auto -0.5rem -0.5rem auto;
+}
+
+.statRoute::before {
+  position: absolute;
+  width: 4.2rem;
+  height: 2.7rem;
+  border-top: 1px solid var(--stat-tone);
+  border-left: 1px solid var(--stat-tone);
+  border-radius: 2rem 0 0;
+  content: "";
+  inset: 0 auto auto 0;
+  transform: rotate(-12deg);
+}
+
+.statRoute span {
+  position: absolute;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--stat-tone);
+}
+
+.statRoute span:first-child {
+  inset: -0.1rem auto auto -0.05rem;
+}
+
+.statRoute span:last-child {
+  inset: auto 0.7rem 0.75rem auto;
+}
+
+.statusBadge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.28rem 0.6rem;
+  border: 1px solid var(--badge-border);
+  border-radius: 999px;
+  color: var(--badge-color);
+  background: var(--badge-background);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badgeDot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.badgeBrand {
+  --badge-color: var(--brand-primary-active);
+  --badge-border: color-mix(in srgb, var(--brand-primary) 25%, var(--border));
+  --badge-background: var(--brand-primary-soft);
+}
+
+.badgeSuccess {
+  --badge-color: var(--success);
+  --badge-border: color-mix(in srgb, var(--success) 24%, var(--border));
+  --badge-background: color-mix(in srgb, var(--success) 7%, var(--surface));
+}
+
+.badgeWarning {
+  --badge-color: var(--warning);
+  --badge-border: color-mix(in srgb, var(--warning) 24%, var(--border));
+  --badge-background: color-mix(in srgb, var(--warning) 7%, var(--surface));
+}
+
+.badgeDanger {
+  --badge-color: var(--error);
+  --badge-border: color-mix(in srgb, var(--error) 24%, var(--border));
+  --badge-background: color-mix(in srgb, var(--error) 7%, var(--surface));
+}
+
+.badgeInfo {
+  --badge-color: var(--info);
+  --badge-border: color-mix(in srgb, var(--info) 24%, var(--border));
+  --badge-background: color-mix(in srgb, var(--info) 7%, var(--surface));
+}
+
+.badgeNeutral {
+  --badge-color: var(--text-secondary);
+  --badge-border: var(--border);
+  --badge-background: var(--surface-secondary);
+}

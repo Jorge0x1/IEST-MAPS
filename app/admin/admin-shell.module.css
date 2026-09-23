@@ -1,0 +1,613 @@
+.adminShell {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  grid-template-columns: 17.5rem minmax(0, 1fr);
+  background: var(--background);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--background);
+  background:
+    radial-gradient(circle at 120% 88%, rgb(255 89 0 / 0.12), transparent 15rem),
+    var(--text-primary);
+}
+
+.sidebarInner {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 1.5rem 1.25rem;
+}
+
+.adminBrand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.85rem;
+  padding-inline: 0.35rem;
+}
+
+.brandIconWrap {
+  display: grid;
+  width: 3.15rem;
+  height: 3.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: var(--radius-lg);
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.16);
+}
+
+.brandIcon {
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.brandCopy {
+  min-width: 0;
+}
+
+.brandCopy p {
+  color: var(--surface);
+  font-size: 1.08rem;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.brandCopy span {
+  display: block;
+  margin-top: 0.25rem;
+  color: rgb(244 246 252 / 0.55);
+  font-size: 0.68rem;
+  font-weight: 580;
+  letter-spacing: 0.07em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.sidebarDivider {
+  position: relative;
+  height: 1px;
+  margin: 1.5rem 0.35rem 1.25rem;
+  background: rgb(255 255 255 / 0.09);
+}
+
+.sidebarDivider span {
+  position: absolute;
+  width: 0.45rem;
+  height: 0.45rem;
+  border: 2px solid var(--text-primary);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  content: "";
+  inset: 50% 1.25rem auto auto;
+  box-shadow: 0 0 0 3px rgb(255 89 0 / 0.18);
+  transform: translateY(-50%);
+}
+
+.adminNav {
+  min-width: 0;
+}
+
+.navLabel {
+  padding-inline: 0.75rem;
+  color: rgb(244 246 252 / 0.42);
+  font-size: 0.65rem;
+  font-weight: 680;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.navList {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.navLink {
+  position: relative;
+  display: grid;
+  min-height: 3.15rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: rgb(244 246 252 / 0.68);
+  font-size: 0.86rem;
+  font-weight: 610;
+  line-height: 1.25;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.navLink:hover {
+  color: var(--surface);
+  background: rgb(255 255 255 / 0.07);
+  transform: translateX(0.12rem);
+}
+
+.navLink::before {
+  position: absolute;
+  width: 0.2rem;
+  border-radius: 999px;
+  background: transparent;
+  content: "";
+  inset: 0.65rem auto 0.65rem -1.25rem;
+}
+
+.navLinkActive {
+  border-color: rgb(255 255 255 / 0.12);
+  color: var(--text-primary);
+  background: var(--surface);
+  box-shadow: 0 9px 22px rgb(0 0 0 / 0.14);
+  transform: none;
+}
+
+.navLinkActive:hover {
+  color: var(--text-primary);
+  background: var(--surface);
+  transform: none;
+}
+
+.navLinkActive::before {
+  background: var(--brand-primary);
+}
+
+.navIcon {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+}
+
+.navIcon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.navLinkActive .navIcon {
+  color: var(--brand-primary-active);
+}
+
+.activeNode {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+
+.sidebarFooter {
+  position: relative;
+  isolation: isolate;
+  margin-top: auto;
+  overflow: hidden;
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  border-radius: var(--radius-lg);
+  color: rgb(244 246 252 / 0.55);
+  background: rgb(255 255 255 / 0.045);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.sidebarFooterLabel {
+  margin-bottom: 0.45rem;
+  color: rgb(244 246 252 / 0.82);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.sidebarRoute {
+  position: absolute;
+  z-index: -1;
+  width: 6.5rem;
+  height: 3rem;
+  opacity: 0.65;
+  inset: auto -1rem -0.5rem auto;
+}
+
+.sidebarRouteLine {
+  position: absolute;
+  width: 5rem;
+  height: 2rem;
+  border-top: 1px solid rgb(255 89 0 / 0.42);
+  border-right: 1px solid rgb(255 89 0 / 0.42);
+  border-radius: 0 2rem 0 0;
+  inset: 0 auto auto 0;
+}
+
+.sidebarRouteStart,
+.sidebarRouteEnd {
+  position: absolute;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--brand-primary);
+}
+
+.sidebarRouteStart {
+  inset: -0.16rem auto auto -0.1rem;
+}
+
+.sidebarRouteEnd {
+  inset: auto 1.1rem 0.7rem auto;
+}
+
+.workspace {
+  min-width: 0;
+  background:
+    linear-gradient(rgb(244 246 252 / 0.88), rgb(244 246 252 / 0.88)),
+    radial-gradient(circle at 95% 0%, var(--brand-primary-soft), transparent 24rem);
+}
+
+.contentArea {
+  min-width: 0;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  min-height: 4.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 0.75rem clamp(1.25rem, 3vw, 2.25rem);
+  border-bottom: 1px solid rgb(227 227 227 / 0.86);
+  background: rgb(255 255 255 / 0.93);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.topbarStart,
+.accountArea {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.topbarStart {
+  gap: 1rem;
+}
+
+.headerContext {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.contextNode {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: 0 0 auto;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+
+.headerContext p {
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.headerContext span:last-child {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--text-muted);
+  font-size: 0.71rem;
+  font-weight: 520;
+  line-height: 1.3;
+}
+
+.accountArea {
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.userGlyph {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--brand-primary-active);
+  background: var(--brand-primary-soft);
+}
+
+.userGlyph svg,
+.logoutButton svg,
+.menuTrigger svg,
+.drawerClose svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.userDetails {
+  max-width: 14rem;
+  min-width: 0;
+  padding-right: 0.35rem;
+}
+
+.userDetails p {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 0.83rem;
+  font-weight: 680;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userDetails span {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 560;
+  line-height: 1.25;
+  text-transform: capitalize;
+}
+
+.logoutForm {
+  display: flex;
+}
+
+.logoutButton {
+  display: inline-flex;
+  min-height: 2.65rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: var(--surface);
+  font-size: 0.76rem;
+  font-weight: 650;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.logoutButton:hover {
+  border-color: rgb(180 35 24 / 0.28);
+  color: var(--error);
+  background: #fff4f2;
+}
+
+.mobileNavSlot {
+  display: none;
+}
+
+.menuTrigger,
+.drawerClose {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  cursor: pointer;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--surface);
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.menuTrigger:hover,
+.drawerClose:hover {
+  border-color: rgb(255 89 0 / 0.42);
+  color: var(--brand-primary-active);
+  background: var(--brand-primary-soft);
+}
+
+.mobileNavLayer {
+  position: fixed;
+  z-index: 100;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  inset: 0;
+}
+
+.mobileOverlay {
+  position: absolute;
+  z-index: 0;
+  background: rgb(47 48 51 / 0.62);
+  backdrop-filter: blur(3px);
+  inset: 0;
+  animation: overlayIn 160ms ease-out;
+}
+
+.mobileDrawer {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  width: min(88vw, 20rem);
+  max-width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem;
+  color: var(--background);
+  background:
+    radial-gradient(circle at 110% 92%, rgb(255 89 0 / 0.13), transparent 14rem),
+    var(--text-primary);
+  box-shadow: 24px 0 54px rgb(0 0 0 / 0.24);
+  inset: 0 auto auto 0;
+  animation: drawerIn 190ms ease-out;
+}
+
+.mobileDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.4rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.09);
+}
+
+.adminBrandCompact {
+  padding: 0;
+}
+
+.adminBrandCompact .brandIconWrap {
+  width: 2.8rem;
+  height: 2.8rem;
+}
+
+.adminBrandCompact .brandIcon {
+  width: 2.05rem;
+  height: 2.05rem;
+}
+
+.drawerClose {
+  flex: 0 0 auto;
+  border-color: rgb(255 255 255 / 0.14);
+  color: var(--background);
+  background: rgb(255 255 255 / 0.06);
+}
+
+.mobileDrawer .adminNav {
+  margin-top: 1.5rem;
+}
+
+.mobileDrawerFooter {
+  margin-top: auto;
+  padding: 1.5rem 0.75rem 0.25rem;
+  color: rgb(244 246 252 / 0.46);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawerIn {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@media (min-width: 64.01rem) {
+  .topbar {
+    position: relative;
+  }
+}
+
+@media (max-width: 64rem) {
+  .adminShell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .mobileNavSlot {
+    display: block;
+  }
+}
+
+@media (max-width: 40rem) {
+  .topbar {
+    gap: 0.75rem;
+    padding-inline: 0.85rem;
+  }
+
+  .headerContext {
+    display: none;
+  }
+
+  .accountArea {
+    gap: 0.55rem;
+  }
+
+  .userDetails {
+    max-width: min(9rem, 34vw);
+  }
+}
+
+@media (max-width: 30rem) {
+  .userDetails {
+    display: none;
+  }
+
+  .logoutButton {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+  }
+
+  .logoutText {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink,
+  .logoutButton,
+  .menuTrigger,
+  .drawerClose {
+    transition: none;
+  }
+
+  .mobileOverlay,
+  .mobileDrawer {
+    animation: none;
+  }
+
+  .navLink:hover {
+    transform: none;
+  }
+}

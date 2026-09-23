@@ -1,0 +1,526 @@
+.loginPage {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  background:
+    radial-gradient(circle at 8% 12%, rgb(255 89 0 / 0.1), transparent 28rem),
+    linear-gradient(135deg, #f4f6fc 0%, #f8f9fc 52%, #eef0f5 100%);
+}
+
+.loginShell {
+  position: relative;
+  display: grid;
+  width: min(100%, 76rem);
+  min-height: min(46rem, calc(100dvh - clamp(2rem, 6vw, 5rem)));
+  grid-template-columns: minmax(0, 1.08fr) minmax(25rem, 0.92fr);
+  overflow: hidden;
+  border: 1px solid rgb(47 48 51 / 0.1);
+  border-radius: 2rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.identityPanel {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: clamp(2rem, 4.5vw, 4.5rem);
+  color: #f4f6fc;
+  background: #303033;
+}
+
+.identityPanel::before {
+  position: absolute;
+  z-index: -2;
+  width: 23rem;
+  height: 23rem;
+  border-radius: 999px;
+  background: rgb(255 89 0 / 0.11);
+  content: "";
+  inset: auto -8rem -9rem auto;
+}
+
+.identityPanel::after {
+  position: absolute;
+  z-index: -1;
+  width: 16rem;
+  height: 16rem;
+  border: 1px solid rgb(244 246 252 / 0.09);
+  border-radius: 999px;
+  content: "";
+  inset: auto -4rem -5rem auto;
+}
+
+.brandLockup {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brandLogo {
+  width: clamp(4rem, 7vw, 5.5rem);
+  height: auto;
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.18));
+}
+
+.brandName {
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.brandDescriptor {
+  margin-top: 0.35rem;
+  color: rgb(244 246 252 / 0.64);
+  font-size: 0.76rem;
+  font-weight: 550;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.identityCopy {
+  position: relative;
+  z-index: 2;
+  max-width: 35rem;
+  margin-block: clamp(4rem, 11vh, 7rem);
+}
+
+.eyebrow,
+.accessEyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: #ff8a4c;
+}
+
+.eyebrow::before {
+  width: 2rem;
+  height: 2px;
+  background: var(--brand-primary);
+  content: "";
+}
+
+.brandHeading {
+  max-width: 10ch;
+  margin-top: 1.25rem;
+  font-size: clamp(2.75rem, 5.3vw, 5.25rem);
+  font-weight: 690;
+  letter-spacing: -0.065em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.brandText {
+  max-width: 33rem;
+  margin-top: 1.75rem;
+  color: rgb(244 246 252 / 0.72);
+  font-size: clamp(1rem, 1.45vw, 1.12rem);
+  line-height: 1.75;
+}
+
+.locationCaption {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgb(244 246 252 / 0.66);
+  font-size: 0.78rem;
+  font-weight: 560;
+  letter-spacing: 0.035em;
+}
+
+.locationDot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid #303033;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgb(255 89 0 / 0.25);
+}
+
+.routeGraphic {
+  position: absolute;
+  z-index: 0;
+  width: 30rem;
+  height: 19rem;
+  opacity: 0.55;
+  pointer-events: none;
+  inset: 13% -9rem auto auto;
+  transform: rotate(-7deg);
+}
+
+.routePath {
+  position: absolute;
+  width: 23rem;
+  height: 12rem;
+  border: 2px solid rgb(244 246 252 / 0.15);
+  border-right-color: transparent;
+  border-bottom-color: var(--brand-primary);
+  border-radius: 9rem 3rem 8rem 4rem;
+  inset: 2.5rem auto auto 1rem;
+  transform: skewX(-10deg);
+}
+
+.routePath::after {
+  position: absolute;
+  width: 8rem;
+  height: 5rem;
+  border-top: 2px solid rgb(244 246 252 / 0.14);
+  border-right: 2px solid rgb(244 246 252 / 0.14);
+  border-radius: 0 4rem 0 0;
+  content: "";
+  inset: 1.3rem -4.5rem auto auto;
+}
+
+.routeNode {
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid #303033;
+  border-radius: 999px;
+  background: #f4f6fc;
+  box-shadow: 0 0 0 4px rgb(244 246 252 / 0.12);
+}
+
+.routeNodeStart {
+  inset: 6.7rem auto auto 0.7rem;
+}
+
+.routeNodeMiddle {
+  width: 0.9rem;
+  height: 0.9rem;
+  background: var(--brand-primary);
+  inset: 14.1rem auto auto 11.7rem;
+}
+
+.routeNodeEnd {
+  inset: 3.2rem 1.7rem auto auto;
+}
+
+.accessPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: clamp(2rem, 5vw, 5rem);
+  background:
+    linear-gradient(rgb(255 255 255 / 0.93), rgb(255 255 255 / 0.93)),
+    radial-gradient(circle at 100% 0%, var(--brand-primary-soft), transparent 18rem);
+}
+
+.accessContent {
+  width: min(100%, 27rem);
+}
+
+.accessEyebrow {
+  color: var(--brand-primary-active);
+}
+
+.loginHeading {
+  margin-top: 0.8rem;
+  color: var(--text-primary);
+  font-size: clamp(2.25rem, 4vw, 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+}
+
+.loginIntro {
+  margin-top: 1.25rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.errorMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgb(180 35 24 / 0.22);
+  border-radius: var(--radius-md);
+  color: var(--error);
+  background: #fff4f2;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.errorMark {
+  display: grid;
+  width: 1.3rem;
+  height: 1.3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--error);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.loginForm {
+  margin-top: 2rem;
+}
+
+.googleButton {
+  display: grid;
+  width: 100%;
+  min-height: 3.75rem;
+  cursor: pointer;
+  grid-template-columns: 2.25rem 1fr 2.25rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.96rem;
+  font-weight: 670;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.googleButton:hover {
+  border-color: rgb(255 89 0 / 0.55);
+  background: #fffaf7;
+  box-shadow: 0 10px 22px rgb(47 48 51 / 0.09);
+  transform: translateY(-1px);
+}
+
+.googleButton:active {
+  background: var(--brand-primary-soft);
+  transform: translateY(0);
+}
+
+.googleButton:focus-visible {
+  border-color: var(--brand-primary-active);
+}
+
+.googleIcon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: #fff;
+}
+
+.googleIcon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.buttonArrow {
+  color: var(--brand-primary-active);
+  font-size: 1.25rem;
+  transition: transform 160ms ease;
+}
+
+.googleButton:hover .buttonArrow {
+  transform: translateX(0.18rem);
+}
+
+.accessNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+}
+
+.noteAccent {
+  width: 0.22rem;
+  min-height: 2.5rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--brand-primary);
+}
+
+.accessNote p {
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.accessNote span:last-child {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.securityNote {
+  margin-top: 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+@media (max-width: 56rem) {
+  .loginPage {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .loginShell {
+    min-height: 100dvh;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .identityPanel {
+    min-height: 21rem;
+    padding: 2rem clamp(1.5rem, 7vw, 3rem) 2.5rem;
+  }
+
+  .identityCopy {
+    margin-block: 3.25rem 2.5rem;
+  }
+
+  .brandHeading {
+    max-width: 15ch;
+    font-size: clamp(2.5rem, 8vw, 4.25rem);
+  }
+
+  .brandText {
+    max-width: 38rem;
+  }
+
+  .routeGraphic {
+    inset: 3rem -8rem auto auto;
+    transform: scale(0.8) rotate(-7deg);
+  }
+
+  .accessPanel {
+    align-items: flex-start;
+    padding: clamp(2.75rem, 8vw, 5rem) clamp(1.5rem, 7vw, 3rem);
+  }
+
+  .accessContent {
+    width: min(100%, 34rem);
+  }
+}
+
+@media (max-width: 34rem) {
+  .identityPanel {
+    min-height: 18.5rem;
+    padding-block: 1.5rem 2rem;
+  }
+
+  .brandLogo {
+    width: 3.75rem;
+  }
+
+  .brandDescriptor {
+    font-size: 0.65rem;
+  }
+
+  .identityCopy {
+    margin-block: 2.5rem 2rem;
+  }
+
+  .brandHeading {
+    font-size: clamp(2.2rem, 12vw, 3.2rem);
+  }
+
+  .brandText {
+    margin-top: 1rem;
+    font-size: 0.94rem;
+    line-height: 1.6;
+  }
+
+  .locationCaption {
+    font-size: 0.72rem;
+  }
+
+  .routeGraphic {
+    opacity: 0.32;
+    transform: scale(0.68) rotate(-7deg);
+    transform-origin: top right;
+  }
+
+  .accessPanel {
+    padding-block: 2.5rem 3rem;
+  }
+
+  .loginHeading {
+    font-size: 2.25rem;
+  }
+
+  .loginIntro {
+    font-size: 0.94rem;
+  }
+
+  .googleButton {
+    min-height: 3.65rem;
+    grid-template-columns: 2.1rem 1fr 1.5rem;
+    font-size: 0.91rem;
+  }
+
+  .googleIcon {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+}
+
+@media (max-height: 45rem) and (min-width: 56.01rem) {
+  .loginPage {
+    align-items: flex-start;
+    overflow: auto;
+  }
+
+  .loginShell {
+    min-height: 40rem;
+  }
+
+  .identityCopy {
+    margin-block: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .googleButton,
+  .buttonArrow {
+    transition: none;
+  }
+
+  .googleButton:hover,
+  .googleButton:hover .buttonArrow {
+    transform: none;
+  }
+}

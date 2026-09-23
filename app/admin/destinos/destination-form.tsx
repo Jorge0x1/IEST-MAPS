@@ -1,14 +1,19 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { actualizarDestino, crearDestino, type EstadoDestino } from "./actions";
+import styles from "./destinos.module.css";
 
 const LocationPicker = dynamic(
   () => import("../components/location-picker").then((modulo) => modulo.LocationPicker),
   {
     ssr: false,
-    loading: () => <div className="h-[220px] w-full animate-pulse rounded-xl border border-slate-200 bg-slate-100" />,
+    loading: () => (
+      <div className={styles.mapSkeleton} role="status">
+        <span className={styles.srOnly}>Cargando mapa interactivo</span>
+      </div>
+    ),
   },
 );
 
@@ -37,50 +42,130 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
   const action = destino ? actualizarDestino.bind(null, destino.id) : crearDestino;
   const [estado, formAction, pendiente] = useActionState(action, estadoInicial);
   const formRef = useRef<HTMLFormElement>(null);
+  const [mapResetVersion, setMapResetVersion] = useState(0);
 
   useEffect(() => {
-    if (estado.ok && !destino) formRef.current?.reset();
-  }, [estado.ok, destino]);
+    if (estado.ok && !destino) {
+      formRef.current?.reset();
+      const resetId = window.setTimeout(() => {
+        setMapResetVersion((version) => version + 1);
+      }, 0);
+
+      return () => window.clearTimeout(resetId);
+    }
+  }, [estado, destino]);
 
   return (
-    <form ref={formRef} action={formAction} className="grid gap-4">
-      <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+    <form ref={formRef} action={formAction} className={styles.destinationForm}>
+      <label className={styles.field}>
         Nombre
-        <input name="nombre" required minLength={2} maxLength={120} defaultValue={destino?.nombre} placeholder="Ej. Salón 204" className="rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-950" />
+        <input
+          name="nombre"
+          required
+          minLength={2}
+          maxLength={120}
+          defaultValue={destino?.nombre}
+          placeholder="Ej. Salón 204"
+          className={styles.control}
+        />
       </label>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+
+      <div className={styles.formPair}>
+        <label className={styles.field}>
           Tipo
-          <select name="tipo" required defaultValue={destino?.tipo ?? "salon"} className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-950">
+          <select
+            name="tipo"
+            required
+            defaultValue={destino?.tipo ?? "salon"}
+            className={styles.control}
+          >
             {tipos.map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
           </select>
         </label>
-        <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+
+        <label className={styles.field}>
           Piso
-          <input name="piso" type="number" required step={1} min={-10} max={100} defaultValue={destino?.piso ?? 0} className="rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-950" />
+          <input
+            name="piso"
+            type="number"
+            required
+            step={1}
+            min={-10}
+            max={100}
+            defaultValue={destino?.piso ?? 0}
+            className={styles.control}
+          />
         </label>
       </div>
-      <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+
+      <label className={styles.field}>
         Edificio
-        <select name="edificio_id" required defaultValue={destino?.edificio_id ?? ""} className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-950">
+        <select
+          name="edificio_id"
+          required
+          defaultValue={destino?.edificio_id ?? ""}
+          className={styles.control}
+        >
           <option value="" disabled>Selecciona un edificio</option>
           {edificios.map((edificio) => <option key={edificio.id} value={edificio.id}>{edificio.nombre}</option>)}
         </select>
       </label>
-      <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+
+      <label className={styles.field}>
         Alias
-        <input name="nombres_alternativos" maxLength={2000} defaultValue={destino?.nombres_alternativos.join(", ")} placeholder="Ej. aula 204, salón de segundo" className="rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-950" />
-        <span className="text-xs font-normal text-slate-500">Separa cada nombre alternativo con una coma.</span>
+        <input
+          name="nombres_alternativos"
+          maxLength={2000}
+          defaultValue={destino?.nombres_alternativos.join(", ")}
+          placeholder="Ej. aula 204, salón de segundo"
+          className={styles.control}
+        />
+        <span className={styles.fieldHelp}>Separa cada nombre alternativo con una coma.</span>
       </label>
-      <LocationPicker latName="lat" lngName="lng" lat={destino?.lat ?? null} lng={destino?.lng ?? null} />
-      <p className="text-xs leading-5 text-slate-500">Toca el mapa para ubicar el nodo, o déjalo así y complétalo después.</p>
-      <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-        <input name="buscable" type="checkbox" defaultChecked={destino?.buscable ?? true} className="mt-0.5 size-4 accent-sky-700" />
-        <span><strong className="block font-semibold text-slate-900">Visible como destino</strong>Los alumnos y guardias podrán encontrarlo en búsquedas.</span>
+
+      <div className={styles.locationSection}>
+        <div className={styles.locationPickerShell}>
+          <LocationPicker
+            key={mapResetVersion}
+            latName="lat"
+            lngName="lng"
+            lat={destino?.lat ?? null}
+            lng={destino?.lng ?? null}
+          />
+        </div>
+      </div>
+
+      <p className={styles.mapHint}>
+        Toca el mapa para ubicar el nodo, o déjalo así y complétalo después.
+      </p>
+
+      <label className={styles.searchableOption}>
+        <input
+          name="buscable"
+          type="checkbox"
+          defaultChecked={destino?.buscable ?? true}
+          className={styles.searchableCheckbox}
+        />
+        <span className={styles.searchableCopy}>
+          <strong>Visible como destino</strong>
+          Los alumnos y guardias podrán encontrarlo en búsquedas.
+        </span>
       </label>
-      <div className="flex items-center justify-between gap-4">
-        {estado.mensaje ? <p role="status" className={`text-sm ${estado.ok ? "text-emerald-700" : "text-red-700"}`}>{estado.mensaje}</p> : <span />}
-        <button disabled={pendiente || edificios.length === 0} className="rounded-lg bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:bg-slate-300">{pendiente ? "Guardando…" : destino ? "Guardar cambios" : "Crear destino"}</button>
+
+      <div className={styles.formFooter}>
+        {estado.mensaje ? (
+          <p
+            role="status"
+            className={`${styles.formMessage} ${estado.ok ? styles.formMessageSuccess : ""}`}
+          >
+            {estado.mensaje}
+          </p>
+        ) : (
+          <span className={styles.formSpacer} />
+        )}
+        <button disabled={pendiente || edificios.length === 0} className={styles.primaryButton}>
+          {pendiente ? "Guardando…" : destino ? "Guardar cambios" : "Crear destino"}
+        </button>
       </div>
     </form>
   );

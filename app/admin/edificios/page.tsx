@@ -1,5 +1,7 @@
 import { BuildingForm } from "./building-form";
 import { DeleteBuildingButton } from "./delete-building-button";
+import styles from "./edificios.module.css";
+import { StatCard, StatusBadge } from "../components/admin-ui";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 
@@ -40,46 +42,157 @@ export default async function EdificiosPage({ searchParams }: { searchParams: Pr
   const conCoordenadas = edificios.filter((edificio) => edificio.lat !== null && edificio.lng !== null).length;
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold text-sky-700">Catálogo del campus</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Edificios</h1>
-        <p className="mt-2 max-w-2xl text-slate-600">Registra las ubicaciones principales del campus. Después conectaremos cada edificio con sus nodos, pisos y rutas.</p>
-      </div>
+    <main className={styles.page}>
+      <header className={styles.pageHeader}>
+        <div className={styles.headerCopy}>
+          <p className={styles.eyebrow}>
+            <span className={styles.eyebrowNode} aria-hidden="true" />
+            Catálogo del campus
+          </p>
+          <h1 className={styles.pageTitle}>Edificios</h1>
+          <p className={styles.pageDescription}>
+            Registra las ubicaciones principales del campus. Después conectaremos cada edificio con sus nodos, pisos y rutas.
+          </p>
+        </div>
 
-      <section aria-label="Resumen de edificios" className="mb-8 grid gap-4 sm:grid-cols-3">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-medium text-slate-500">Edificios registrados</p><p className="mt-2 text-3xl font-bold text-slate-950">{edificios.length}</p></article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-medium text-slate-500">Con coordenadas GPS</p><p className="mt-2 text-3xl font-bold text-slate-950">{conCoordenadas}</p></article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-medium text-slate-500">Nodos asociados</p><p className="mt-2 text-3xl font-bold text-slate-950">{nodos.length}</p></article>
+        <span className={styles.headerMarker} aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 21V6l9-3v18M13 8h7v13M7.5 8.5h2M7.5 12.5h2M7.5 16.5h2M16 12h1.5M16 16h1.5M2.5 21h19" />
+          </svg>
+        </span>
+
+        <div className={styles.headerRoute} aria-hidden="true">
+          <span />
+          <span />
+        </div>
+      </header>
+
+      <section aria-label="Resumen de edificios" className={styles.statsGrid}>
+        <StatCard label="Edificios registrados" value={edificios.length} tone="brand" />
+        <StatCard label="Con coordenadas GPS" value={conCoordenadas} tone="success" />
+        <StatCard label="Nodos asociados" value={nodos.length} tone="info" />
       </section>
 
-      <div className="grid items-start gap-8 xl:grid-cols-[360px_1fr]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-6">
-          <div className="mb-5"><h2 className="font-semibold text-slate-950">Nuevo edificio</h2><p className="mt-1 text-sm text-slate-500">Puedes agregar las coordenadas ahora o completarlas después.</p></div>
-          <BuildingForm />
+      <div className={styles.managementLayout}>
+        <section className={`${styles.panel} ${styles.createPanel}`} aria-labelledby="nuevo-edificio-title">
+          <div className={styles.panelHeader}>
+            <div className={styles.panelHeading}>
+              <p className={styles.panelKicker}>Alta geográfica</p>
+              <h2 id="nuevo-edificio-title" className={styles.panelTitle}>Nuevo edificio</h2>
+              <p className={styles.panelDescription}>
+                Puedes agregar las coordenadas ahora o completarlas después.
+              </p>
+            </div>
+          </div>
+          <div className={styles.panelBody}>
+            <BuildingForm />
+          </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center">
-            <div><h2 className="font-semibold text-slate-950">Directorio de edificios</h2><p className="mt-1 text-sm text-slate-500">{filtrados.length} de {edificios.length} resultados</p></div>
-            <form action="/admin/edificios" className="flex w-full max-w-sm gap-2"><label htmlFor="buscar-edificio" className="sr-only">Buscar edificio</label><input id="buscar-edificio" type="search" name="buscar" defaultValue={buscar} placeholder="Nombre o descripción" className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-950" /><button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Buscar</button></form>
+        <section className={`${styles.panel} ${styles.directoryPanel}`} aria-labelledby="directorio-edificios-title">
+          <div className={`${styles.panelHeader} ${styles.directoryHeader}`}>
+            <div className={styles.panelHeading}>
+              <p className={styles.panelKicker}>Inventario del campus</p>
+              <h2 id="directorio-edificios-title" className={styles.panelTitle}>Directorio de edificios</h2>
+              <p className={styles.panelDescription}>{filtrados.length} de {edificios.length} resultados</p>
+            </div>
+
+            <form action="/admin/edificios" className={styles.searchForm}>
+              <label htmlFor="buscar-edificio" className={styles.srOnly}>Buscar edificio</label>
+              <div className={styles.searchControl}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="10.8" cy="10.8" r="6.8" />
+                  <path d="m16 16 4 4" />
+                </svg>
+                <input
+                  id="buscar-edificio"
+                  type="search"
+                  name="buscar"
+                  defaultValue={buscar}
+                  placeholder="Nombre o descripción"
+                  className={`${styles.control} ${styles.searchInput}`}
+                />
+              </div>
+              <button className={styles.primaryButton}>Buscar</button>
+            </form>
           </div>
 
           {edificiosResult.error || nodosResult.error ? (
-            <div className="m-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">No se pudo cargar el catálogo. Verifica la conexión con Supabase.</div>
+            <div className={styles.feedback} role="alert">
+              No se pudo cargar el catálogo. Verifica la conexión con Supabase.
+            </div>
           ) : filtrados.length === 0 ? (
-            <div className="px-6 py-16 text-center"><p className="font-medium text-slate-800">No hay edificios para mostrar</p><p className="mt-1 text-sm text-slate-500">Crea el primero o prueba otra búsqueda.</p></div>
+            <div className={styles.emptyState}>
+              <span className={styles.emptyNode} aria-hidden="true" />
+              <p className={styles.emptyTitle}>No hay edificios para mostrar</p>
+              <p className={styles.emptyDescription}>Crea el primero o prueba otra búsqueda.</p>
+            </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className={styles.buildingList}>
               {filtrados.map((edificio) => {
                 const tieneGps = edificio.lat !== null && edificio.lng !== null;
+                const numeroNodos = conteoNodos[edificio.id] ?? 0;
+
                 return (
-                  <article key={edificio.id} className="p-5 sm:p-6">
-                    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-                      <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-semibold text-slate-950">{edificio.nombre}</h3><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${tieneGps ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-800 ring-amber-200"}`}>{tieneGps ? "GPS listo" : "Sin coordenadas"}</span></div><p className="mt-2 text-sm leading-6 text-slate-600">{edificio.descripcion || "Sin descripción."}</p><div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500"><span>{conteoNodos[edificio.id] ?? 0} nodo(s)</span>{tieneGps ? <a className="font-medium text-sky-700 hover:underline" href={`https://www.openstreetmap.org/?mlat=${edificio.lat}&mlon=${edificio.lng}#map=19/${edificio.lat}/${edificio.lng}`} target="_blank" rel="noreferrer">{edificio.lat?.toFixed(6)}, {edificio.lng?.toFixed(6)}</a> : null}</div></div>
+                  <article key={edificio.id} className={styles.buildingCard}>
+                    <div className={styles.buildingSummary}>
+                      <div className={styles.buildingIdentity}>
+                        <div className={styles.buildingTitleRow}>
+                          <h3 className={styles.buildingTitle}>{edificio.nombre}</h3>
+                          <StatusBadge tone={tieneGps ? "success" : "warning"}>
+                            {tieneGps ? "GPS listo" : "Sin coordenadas"}
+                          </StatusBadge>
+                        </div>
+                        <p className={styles.buildingDescription}>{edificio.descripcion || "Sin descripción."}</p>
+
+                        <div className={styles.metadata}>
+                          <span className={styles.metaItem}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <circle cx="5" cy="12" r="2.5" />
+                              <circle cx="19" cy="6" r="2.5" />
+                              <circle cx="19" cy="18" r="2.5" />
+                              <path d="m7.4 11 9.2-4M7.4 13l9.2 4" />
+                            </svg>
+                            {numeroNodos} {numeroNodos === 1 ? "nodo" : "nodos"}
+                          </span>
+
+                          {tieneGps ? (
+                            <a
+                              className={styles.coordinateLink}
+                              href={`https://www.openstreetmap.org/?mlat=${edificio.lat}&mlon=${edificio.lng}#map=19/${edificio.lat}/${edificio.lng}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              aria-label={`Ver coordenadas de ${edificio.nombre} en OpenStreetMap`}
+                            >
+                              <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" />
+                                <circle cx="12" cy="10" r="2.2" />
+                              </svg>
+                              <span>{edificio.lat?.toFixed(6)}, {edificio.lng?.toFixed(6)}</span>
+                            </a>
+                          ) : null}
+                        </div>
+                      </div>
+
                       <DeleteBuildingButton edificioId={edificio.id} nombre={edificio.nombre} />
                     </div>
-                    <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50"><summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-700">Editar información</summary><div className="border-t border-slate-200 bg-white p-4"><BuildingForm edificio={edificio} /></div></details>
+
+                    <details className={styles.editDetails}>
+                      <summary className={styles.editSummary}>
+                        <span className={styles.editSummaryLabel}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="m14.5 5.5 4 4M4 20l3.8-.8L19 8a2.8 2.8 0 0 0-4-4L3.8 15.2 3 19Z" />
+                          </svg>
+                          Editar información
+                        </span>
+                        <svg className={styles.editChevron} viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="m7 10 5 5 5-5" />
+                        </svg>
+                      </summary>
+                      <div className={styles.editContent}>
+                        <BuildingForm edificio={edificio} />
+                      </div>
+                    </details>
                   </article>
                 );
               })}
