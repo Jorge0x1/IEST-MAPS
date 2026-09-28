@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DestinationForm, type DestinoInicial, type EdificioOpcion } from "./destination-form";
 import { DeleteDestinationButton } from "./delete-destination-button";
 import { requerirRol } from "@/utils/auth";
@@ -36,10 +37,13 @@ export default async function DestinosPage({ searchParams }: { searchParams: Pro
 
   return (
     <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold text-sky-700">Grafo del campus</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Destinos y nodos</h1>
-        <p className="mt-2 max-w-3xl text-slate-600">Administra lugares buscables y puntos auxiliares del recorrido. Las conexiones entre ellos se configurarán en el siguiente módulo.</p>
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-sm font-semibold text-sky-700">Grafo del campus</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Destinos y nodos</h1>
+          <p className="mt-2 max-w-3xl text-slate-600">Administra lugares buscables y puntos auxiliares del recorrido. Las conexiones entre ellos se configuran en <Link href="/admin/conexiones" className="font-medium text-sky-700 hover:underline">Conexiones</Link>.</p>
+        </div>
+        <Link href="/admin/destinos/trazar" className="shrink-0 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">Trazar un pasillo →</Link>
       </div>
 
       <section aria-label="Resumen de destinos" className="mb-8 grid gap-4 sm:grid-cols-3">
