@@ -25,7 +25,7 @@ export default async function ConexionesPage() {
   const [nodosResult, conexionesResult] = await Promise.all([
     supabase
       .from("nodos")
-      .select("id, nombre, tipo, piso, edificio_id, edificios(nombre)")
+      .select("id, nombre, tipo, piso, lat, lng, edificio_id, edificios(nombre)")
       .order("piso")
       .order("nombre"),
     supabase

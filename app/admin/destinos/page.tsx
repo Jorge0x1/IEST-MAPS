@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DestinationForm, type DestinoInicial, type EdificioOpcion } from "./destination-form";
 import { DeleteDestinationButton } from "./delete-destination-button";
 import styles from "./destinos.module.css";

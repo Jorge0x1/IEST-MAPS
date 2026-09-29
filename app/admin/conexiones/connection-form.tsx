@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { actualizarConexion, crearConexion, type EstadoConexion } from "./actions";
 import styles from "./conexiones.module.css";
 
@@ -11,6 +11,8 @@ export type NodoOpcion = {
   nombre: string;
   tipo: string;
   piso: number;
+  lat: number | null;
+  lng: number | null;
   edificios: { nombre: string } | null;
 };
 
@@ -40,10 +42,24 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
   const action = conexion ? actualizarConexion.bind(null, conexion.id) : crearConexion;
   const [estado, formAction, pendiente] = useActionState(action, estadoInicial);
   const formRef = useRef<HTMLFormElement>(null);
+  const costoInputRef = useRef<HTMLInputElement>(null);
+  // En edición no queremos pisar un costo ya guardado apenas se monta el
+  // formulario; solo se recalcula si el admin cambia el origen o destino.
+  const costoTocadoRef = useRef(Boolean(conexion));
+
+  const [origenId, setOrigenId] = useState(conexion?.nodo_origen_id ?? "");
+  const [destinoId, setDestinoId] = useState(conexion?.nodo_destino_id ?? "");
+
   const grupos = agruparPorEdificio(nodos);
+  const nodosPorId = useMemo(() => new Map(nodos.map((nodo) => [nodo.id, nodo])), [nodos]);
 
   useEffect(() => {
-    if (estado.ok && !conexion) formRef.current?.reset();
+    if (estado.ok && !conexion) {
+      formRef.current?.reset();
+      setOrigenId("");
+      setDestinoId("");
+      costoTocadoRef.current = false;
+    }
   }, [estado.ok, conexion]);
 
   return (
@@ -82,6 +98,14 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
             required
             defaultValue={conexion?.nodo_destino_id ?? ""}
             className={styles.control}
+        <label className="grid min-w-0 gap-1.5 text-sm font-medium text-slate-700">
+          Nodo de destino
+          <select
+            name="nodo_destino_id"
+            required
+            value={destinoId}
+            onChange={(evento) => setDestinoId(evento.target.value)}
+            className={campoSelect}
           >
             <option value="" disabled>Selecciona un nodo</option>
             {grupos.map(([edificio, opciones]) => (
@@ -110,6 +134,27 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
             className={styles.control}
           />
         </label>
+      <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+        Costo (opcional)
+        <input
+          ref={costoInputRef}
+          name="costo"
+          type="number"
+          min={0}
+          step="any"
+          defaultValue={conexion?.costo ?? ""}
+          onChange={() => {
+            costoTocadoRef.current = true;
+          }}
+          placeholder="Distancia, tiempo o peso manual"
+          className="rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-950"
+        />
+        <span className="text-xs font-normal text-slate-500">
+          {hayCoordenadas
+            ? "Se sugirió la distancia real en metros entre ambos nodos; puedes cambiarla."
+            : "Sin coordenadas en alguno de los dos nodos no se puede sugerir la distancia."}
+        </span>
+      </label>
 
         <label className={styles.directionOption}>
           <input
