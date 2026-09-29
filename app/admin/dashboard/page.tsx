@@ -2,6 +2,8 @@ import { AccessButton } from "./access-button";
 import { CreateUserForm } from "./create-user-form";
 import { eliminarAltaPendiente } from "./actions";
 import { RoleSelector } from "./role-selector";
+import { StatCard, StatusBadge } from "../components/admin-ui";
+import styles from "./dashboard.module.css";
 import { requerirRol, type RolUsuario } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 
@@ -22,10 +24,16 @@ type AltaPendiente = {
   created_at: string;
 };
 
-const estilosRol: Record<string, string> = {
-  administrador: "bg-violet-50 text-violet-700 ring-violet-200",
-  guardia: "bg-amber-50 text-amber-800 ring-amber-200",
-  alumno: "bg-sky-50 text-sky-700 ring-sky-200",
+const etiquetasRol: Record<string, string> = {
+  administrador: "Administrador",
+  guardia: "Guardia",
+  alumno: "Alumno",
+};
+
+const tonosRol: Record<string, "brand" | "warning" | "info" | "neutral"> = {
+  administrador: "brand",
+  guardia: "warning",
+  alumno: "info",
 };
 
 function normalizar(texto: string) {
@@ -59,63 +67,176 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-sm font-semibold text-sky-700">Administración</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Usuarios y accesos</h1><p className="mt-2 max-w-2xl text-slate-600">Autoriza correos institucionales, prepara sus roles y controla quién puede entrar al sistema.</p></div>
-        <span className="w-fit rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200">Google Auth conectado</span>
-      </div>
+    <main className={styles.dashboardPage}>
+      <header className={styles.pageHeader}>
+        <div className={styles.headerCopy}>
+          <p className={styles.eyebrow}>
+            <span className={styles.eyebrowNode} aria-hidden="true" />
+            Gestión institucional
+          </p>
+          <h1 className={styles.pageTitle}>Usuarios y accesos</h1>
+          <p className={styles.pageDescription}>
+            Autoriza correos institucionales, prepara sus roles y controla quién puede entrar al sistema.
+          </p>
+        </div>
 
-      <section aria-label="Resumen de usuarios" className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Object.entries({ "Usuarios activos": resumen.activos, "Pendientes de acceso": resumen.pendientes, "Accesos desactivados": resumen.desactivados, "Roles privilegiados": resumen.privilegiados }).map(([etiqueta, valor]) => (
-          <article key={etiqueta} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-medium text-slate-500">{etiqueta}</p><p className="mt-2 text-3xl font-bold text-slate-950">{valor}</p></article>
-        ))}
+        <div className={styles.authStatus} aria-label="Google Auth conectado">
+          <span className={styles.authIcon} aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m6.5 12.5 3.2 3.2 7.8-8" /></svg>
+          </span>
+          <div>
+            <p>Google Auth</p>
+            <span>Conectado</span>
+          </div>
+        </div>
+
+        <div className={styles.headerRoute} aria-hidden="true">
+          <span className={styles.headerRouteLine} />
+          <span className={styles.headerRouteStart} />
+          <span className={styles.headerRouteEnd} />
+        </div>
+      </header>
+
+      <section aria-label="Resumen de usuarios" className={styles.statsGrid}>
+        <StatCard label="Usuarios activos" value={resumen.activos} tone="success" />
+        <StatCard label="Pendientes de acceso" value={resumen.pendientes} tone="warning" />
+        <StatCard label="Accesos desactivados" value={resumen.desactivados} tone="danger" />
+        <StatCard label="Roles privilegiados" value={resumen.privilegiados} tone="brand" />
       </section>
 
-      <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-5"><h2 className="font-semibold text-slate-950">Dar de alta un correo</h2><p className="mt-1 text-sm text-slate-500">La cuenta de Google se enlazará automáticamente cuando la persona ingrese por primera vez.</p></div>
-        <CreateUserForm />
+      <section className={styles.panel} aria-labelledby="alta-title">
+        <div className={styles.panelHeader}>
+          <div className={styles.panelHeadingGroup}>
+            <p className={styles.panelKicker}>Nuevo acceso</p>
+            <h2 id="alta-title" className={styles.panelTitle}>Dar de alta un correo</h2>
+            <p className={styles.panelDescription}>
+              La cuenta de Google se enlazará automáticamente cuando la persona ingrese por primera vez.
+            </p>
+          </div>
+        </div>
+        <div className={styles.panelBody}>
+          <CreateUserForm />
+        </div>
       </section>
 
       {pendientes.length > 0 ? (
-        <section className="mb-8 overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
-          <div className="border-b border-amber-100 bg-amber-50/70 p-5"><h2 className="font-semibold text-slate-950">Pendientes de primer acceso</h2><p className="mt-1 text-sm text-slate-600">Estos correos ya tienen un rol reservado, pero aún no han iniciado sesión con Google.</p></div>
-          <div className="divide-y divide-slate-100">
-            {pendientes.map((alta) => (
-              <div key={alta.id} className="flex flex-col justify-between gap-4 px-5 py-4 sm:flex-row sm:items-center">
-                <div><p className="font-medium text-slate-950">{alta.nombre || "Nombre pendiente"}</p><p className="text-sm text-slate-500">{alta.correo} · Alta {fecha(alta.created_at)}</p></div>
-                <div className="flex items-center gap-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${estilosRol[alta.rol]}`}>{alta.rol}</span><form action={eliminarAltaPendiente.bind(null, alta.id)}><button className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Cancelar alta</button></form></div>
-              </div>
-            ))}
+        <section className={`${styles.panel} ${styles.pendingPanel}`} aria-labelledby="pendientes-title">
+          <div className={styles.panelHeader}>
+            <div className={styles.panelHeadingGroup}>
+              <p className={styles.panelKicker}>Activación pendiente</p>
+              <h2 id="pendientes-title" className={styles.panelTitle}>Pendientes de primer acceso</h2>
+              <p className={styles.panelDescription}>
+                Estos correos ya tienen un rol reservado, pero aún no han iniciado sesión con Google.
+              </p>
+            </div>
+            <span className={styles.countBadge} aria-label={`${pendientes.length} altas pendientes`}>
+              {pendientes.length}
+            </span>
           </div>
+          <ul className={styles.pendingList}>
+            {pendientes.map((alta) => (
+              <li key={alta.id} className={styles.pendingItem}>
+                <div className={styles.pendingIdentity}>
+                  <p className={styles.identityName}>{alta.nombre || "Nombre pendiente"}</p>
+                  <p className={styles.identityMeta}>{alta.correo} · Alta {fecha(alta.created_at)}</p>
+                </div>
+                <div className={styles.pendingActions}>
+                  <StatusBadge tone={tonosRol[alta.rol] ?? "neutral"}>
+                    {etiquetasRol[alta.rol] ?? alta.rol}
+                  </StatusBadge>
+                  <form action={eliminarAltaPendiente.bind(null, alta.id)}>
+                    <button className={styles.dangerButton}>Cancelar alta</button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center">
-          <div><h2 className="font-semibold text-slate-950">Directorio de usuarios</h2><p className="mt-1 text-sm text-slate-500">{perfilesFiltrados.length} de {perfiles.length} cuentas institucionales</p></div>
-          <form className="flex w-full max-w-sm gap-2" action="/admin/dashboard"><label htmlFor="buscar" className="sr-only">Buscar usuario</label><input id="buscar" name="buscar" type="search" defaultValue={buscar} placeholder="Nombre, correo o rol" className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900" /><button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Buscar</button></form>
+      <section className={`${styles.panel} ${styles.directoryPanel}`} aria-labelledby="directorio-title">
+        <div className={`${styles.panelHeader} ${styles.directoryHeader}`}>
+          <div className={styles.panelHeadingGroup}>
+            <p className={styles.panelKicker}>Control de acceso</p>
+            <h2 id="directorio-title" className={styles.panelTitle}>Directorio de usuarios</h2>
+            <p className={styles.panelDescription}>
+              {perfilesFiltrados.length} de {perfiles.length} cuentas institucionales
+            </p>
+          </div>
+          <form className={styles.searchForm} action="/admin/dashboard">
+            <label htmlFor="buscar" className={styles.srOnly}>Buscar usuario</label>
+            <div className={styles.searchControl}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" /></svg>
+              <input
+                id="buscar"
+                name="buscar"
+                type="search"
+                defaultValue={buscar}
+                placeholder="Nombre, correo o rol"
+                className={`${styles.control} ${styles.searchInput}`}
+              />
+            </div>
+            <button className={styles.primaryButton}>Buscar</button>
+          </form>
         </div>
 
         {profilesResult.error || pendientesResult.error ? (
-          <div className="m-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">No fue posible cargar el directorio. Ejecuta primero la migración 0002 en Supabase.</div>
+          <div className={styles.feedbackBox} role="alert">
+            No fue posible cargar el directorio. Ejecuta primero la migración 0002 en Supabase.
+          </div>
         ) : perfilesFiltrados.length === 0 ? (
-          <div className="px-6 py-16 text-center text-slate-600">No encontramos usuarios con ese criterio.</div>
+          <div className={styles.emptyState}>
+            <span className={styles.emptyNode} aria-hidden="true" />
+            No encontramos usuarios con ese criterio.
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1050px] text-left">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr><th className="px-6 py-3 font-semibold">Usuario</th><th className="px-6 py-3 font-semibold">Estado</th><th className="px-6 py-3 font-semibold">Registro</th><th className="px-6 py-3 text-right font-semibold">Rol</th><th className="px-6 py-3 text-right font-semibold">Acceso</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">
-                {perfilesFiltrados.map((perfil) => (
-                  <tr key={perfil.id} className={perfil.activo ? "hover:bg-slate-50/70" : "bg-slate-50/60 text-slate-500"}>
-                    <td className="px-6 py-4"><div className="font-medium text-slate-950">{perfil.nombre || "Nombre no disponible"}</div><div className="mt-0.5 text-sm text-slate-500">{perfil.correo || "Sin correo"}</div></td>
-                    <td className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${perfil.activo ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-red-50 text-red-700 ring-red-200"}`}>{perfil.activo ? "Activo" : "Desactivado"}</span></td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{fecha(perfil.created_at)}</td>
-                    <td className="px-6 py-4"><RoleSelector profileId={perfil.id} rolActual={perfil.rol} deshabilitado={perfil.id === administrador.id || !perfil.activo} /></td>
-                    <td className="px-6 py-4 text-right">{perfil.id === administrador.id ? <span className="text-xs text-slate-500">Tu cuenta</span> : <AccessButton profileId={perfil.id} activo={perfil.activo} />}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div>
+            <div className={styles.directoryColumns} aria-hidden="true">
+              <span>Usuario</span>
+              <span>Estado</span>
+              <span>Registro</span>
+              <span>Rol</span>
+              <span>Acceso</span>
+            </div>
+            <ul className={styles.directoryList} aria-label="Usuarios institucionales">
+              {perfilesFiltrados.map((perfil) => (
+                <li
+                  key={perfil.id}
+                  className={`${styles.directoryRow} ${perfil.activo ? "" : styles.directoryRowInactive}`}
+                >
+                  <div className={`${styles.directoryCell} ${styles.identityCell}`}>
+                    <p className={styles.identityName}>{perfil.nombre || "Nombre no disponible"}</p>
+                    <p className={styles.identityMeta}>{perfil.correo || "Sin correo"}</p>
+                  </div>
+                  <div className={styles.directoryCell}>
+                    <span className={styles.dataLabel}>Estado</span>
+                    <StatusBadge tone={perfil.activo ? "success" : "danger"}>
+                      {perfil.activo ? "Activo" : "Desactivado"}
+                    </StatusBadge>
+                  </div>
+                  <div className={styles.directoryCell}>
+                    <span className={styles.dataLabel}>Registro</span>
+                    <span className={styles.dateText}>{fecha(perfil.created_at)}</span>
+                  </div>
+                  <div className={`${styles.directoryCell} ${styles.roleCell}`}>
+                    <span className={styles.dataLabel}>Rol</span>
+                    <RoleSelector
+                      profileId={perfil.id}
+                      rolActual={perfil.rol}
+                      deshabilitado={perfil.id === administrador.id || !perfil.activo}
+                    />
+                  </div>
+                  <div className={`${styles.directoryCell} ${styles.accessCell}`}>
+                    <span className={styles.dataLabel}>Acceso</span>
+                    {perfil.id === administrador.id ? (
+                      <span className={styles.currentAccount}>Tu cuenta</span>
+                    ) : (
+                      <AccessButton profileId={perfil.id} activo={perfil.activo} />
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </section>

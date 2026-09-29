@@ -1,0 +1,733 @@
+.page {
+  container: connections-page / inline-size;
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding: clamp(1.5rem, 3vw, 2.75rem) clamp(1rem, 3vw, 2.5rem) 3.5rem;
+}
+
+.pageHeader {
+  position: relative;
+  display: flex;
+  min-height: 10.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 91% 17%, rgb(255 89 0 / 0.12), transparent 16rem),
+    linear-gradient(135deg, var(--surface) 0%, var(--surface-secondary) 100%);
+  box-shadow: var(--shadow-sm);
+}
+
+.headerCopy {
+  position: relative;
+  z-index: 1;
+  max-width: 47rem;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
+  color: var(--brand-primary-active);
+  font-size: 0.72rem;
+  font-weight: 730;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.eyebrowNode {
+  width: 0.52rem;
+  height: 0.52rem;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+
+.pageTitle {
+  color: var(--text-primary);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  line-height: 1.03;
+}
+
+.pageDescription {
+  max-width: 46rem;
+  margin-top: 0.8rem;
+  color: var(--text-secondary);
+  font-size: clamp(0.94rem, 1.5vw, 1.03rem);
+  line-height: 1.65;
+}
+
+.headerIcon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(255 89 0 / 0.2);
+  border-radius: var(--radius-xl);
+  color: var(--brand-primary-active);
+  background: var(--brand-primary-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.headerIcon svg {
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.65;
+}
+
+.headerNetwork {
+  position: absolute;
+  width: 12rem;
+  height: 6.5rem;
+  opacity: 0.88;
+  inset: -0.15rem 5rem auto auto;
+  pointer-events: none;
+}
+
+.headerNetworkLine {
+  position: absolute;
+  width: 9.5rem;
+  height: 3.4rem;
+  border-right: 1px solid rgb(255 89 0 / 0.34);
+  border-bottom: 1px solid rgb(255 89 0 / 0.34);
+  border-radius: 0 0 2.5rem;
+  inset: 0.4rem 1.2rem auto auto;
+  transform: rotate(-8deg);
+}
+
+.headerNetworkNodeStart,
+.headerNetworkNodeMiddle,
+.headerNetworkNodeEnd {
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 4px var(--brand-primary-soft);
+}
+
+.headerNetworkNodeStart {
+  inset: 0.35rem auto auto 1rem;
+}
+
+.headerNetworkNodeMiddle {
+  inset: 2.85rem auto auto 5.8rem;
+}
+
+.headerNetworkNodeEnd {
+  inset: auto 0.7rem 0.45rem auto;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.managementLayout {
+  display: grid;
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.createPanel,
+.directoryPanel {
+  min-width: 0;
+}
+
+.createPanel {
+  container: connection-form / inline-size;
+}
+
+.directoryPanel {
+  container: connection-directory / inline-size;
+}
+
+.panelHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem clamp(1.15rem, 2.5vw, 1.75rem);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-secondary);
+}
+
+.panelHeading {
+  min-width: 0;
+}
+
+.panelKicker {
+  margin-bottom: 0.28rem;
+  color: var(--brand-primary-active);
+  font-size: 0.65rem;
+  font-weight: 720;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.panelTitle {
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 720;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.panelDescription {
+  max-width: 45rem;
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.panelBody {
+  padding: clamp(1.15rem, 2.5vw, 1.75rem);
+}
+
+.connectionForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.nodeSelectors {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 680;
+  line-height: 1.3;
+}
+
+.control {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.62rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--surface);
+  font-size: 0.85rem;
+  font-weight: 480;
+  line-height: 1.4;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.control::placeholder {
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.control:hover:not(:disabled) {
+  border-color: var(--text-muted);
+}
+
+.control:focus-visible {
+  border-color: var(--focus-ring);
+  outline: 3px solid color-mix(in srgb, var(--focus-ring) 22%, transparent);
+  outline-offset: 1px;
+}
+
+.control:disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+  background: var(--surface-secondary);
+}
+
+.selectorLink {
+  position: relative;
+  display: flex;
+  width: 1.4rem;
+  height: 1.4rem;
+  align-items: center;
+  flex-direction: column;
+  justify-content: space-between;
+  justify-self: center;
+}
+
+.selectorLink::before {
+  position: absolute;
+  width: 1px;
+  background: color-mix(in srgb, var(--brand-primary) 42%, var(--border));
+  content: "";
+  inset: 0.25rem auto 0.25rem 50%;
+}
+
+.selectorLink span {
+  position: relative;
+  z-index: 1;
+  width: 0.42rem;
+  height: 0.42rem;
+  border: 1px solid var(--surface);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 2px var(--brand-primary-soft);
+}
+
+.connectionSettings {
+  display: grid;
+  min-width: 0;
+  gap: 0.85rem;
+}
+
+.directionOption {
+  display: flex;
+  min-width: 0;
+  cursor: pointer;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, var(--border));
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--brand-primary-soft) 54%, var(--surface));
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.directionOption strong {
+  display: block;
+  margin-bottom: 0.12rem;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.checkbox {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+  accent-color: var(--brand-primary-active);
+}
+
+.formFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.15rem;
+}
+
+.formSpacer {
+  min-width: 0;
+}
+
+.formMessage,
+.deleteMessage {
+  color: var(--error);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.formMessageSuccess {
+  color: var(--success);
+}
+
+.primaryButton,
+.dangerButton {
+  display: inline-flex;
+  min-height: 2.75rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 690;
+  line-height: 1.2;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.primaryButton {
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--brand-primary-active);
+  color: var(--surface);
+  background: var(--brand-primary-active);
+  box-shadow: 0 6px 14px rgb(184 63 0 / 0.16);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand-primary-active) 88%, black);
+  transform: translateY(-1px);
+}
+
+.dangerButton {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--error) 28%, var(--border));
+  color: var(--error);
+  background: var(--surface);
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--error) 7%, var(--surface));
+}
+
+.primaryButton:disabled,
+.dangerButton:disabled {
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: var(--surface-secondary);
+  box-shadow: none;
+  transform: none;
+  opacity: 0.72;
+}
+
+.connectionList {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  background: var(--surface-secondary);
+}
+
+.connectionCard {
+  min-width: 0;
+  padding: 1.05rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.connectionCardHeader {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.connectionBadges {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.costBadge {
+  display: inline-flex;
+  min-height: 1.65rem;
+  align-items: center;
+  padding: 0.28rem 0.58rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  font-size: 0.67rem;
+  font-weight: 680;
+  line-height: 1.2;
+}
+
+.connectionRoute {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.nodeSummary {
+  min-width: 0;
+  padding: 0.78rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+}
+
+.nodeRole {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--brand-primary-active);
+  font-size: 0.62rem;
+  font-weight: 730;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.nodeSummary p {
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 660;
+  line-height: 1.45;
+}
+
+.directionIndicator {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.directionIndicator svg {
+  width: 3rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  fill: var(--brand-primary-soft);
+  stroke: var(--brand-primary-active);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.directionIndicator span {
+  font-size: 0.65rem;
+  font-weight: 670;
+  line-height: 1.3;
+}
+
+.deleteControl {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.deleteMessage {
+  max-width: 13rem;
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+.feedback,
+.emptyState {
+  margin: 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.feedback {
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--error) 24%, var(--border));
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 6%, var(--surface));
+}
+
+.emptyState {
+  padding: 3.5rem 1.5rem;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  text-align: center;
+}
+
+.emptyConnection {
+  position: relative;
+  display: flex;
+  width: 3.4rem;
+  height: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto 0.9rem;
+}
+
+.emptyConnection::before {
+  position: absolute;
+  height: 1px;
+  background: color-mix(in srgb, var(--brand-primary) 42%, var(--border));
+  content: "";
+  inset: 50% 0 auto;
+}
+
+.emptyConnection span {
+  position: relative;
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+
+.emptyTitle {
+  color: var(--text-primary);
+  font-weight: 680;
+}
+
+.emptyDescription {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+@container connection-form (min-width: 33rem) {
+  .nodeSelectors {
+    grid-template-columns: minmax(0, 1fr) 1.4rem minmax(0, 1fr);
+    align-items: end;
+  }
+
+  .selectorLink {
+    flex-direction: row;
+    margin-bottom: 0.68rem;
+  }
+
+  .selectorLink::before {
+    width: auto;
+    height: 1px;
+    inset: 50% 0.25rem auto;
+  }
+
+  .connectionSettings {
+    grid-template-columns: minmax(9rem, 0.62fr) minmax(15rem, 1.38fr);
+    align-items: end;
+  }
+}
+
+@container connection-directory (min-width: 33rem) {
+  .connectionRoute {
+    grid-template-columns: minmax(0, 1fr) minmax(7.5rem, auto) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .directionIndicator {
+    flex-direction: column;
+  }
+}
+
+@container connections-page (min-width: 62rem) {
+  .managementLayout {
+    grid-template-columns: minmax(25rem, 0.9fr) minmax(32rem, 1.1fr);
+  }
+
+  .createPanel {
+    position: sticky;
+    top: 1.5rem;
+  }
+}
+
+@media (max-width: 54rem) {
+  .pageHeader {
+    min-height: 0;
+    align-items: center;
+  }
+
+  .headerNetwork {
+    right: -2rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .page {
+    padding-inline: 0.85rem;
+    padding-top: 1rem;
+  }
+
+  .pageHeader,
+  .panel {
+    border-radius: var(--radius-lg);
+  }
+
+  .headerNetwork {
+    display: none;
+  }
+
+  .headerIcon {
+    display: none;
+  }
+
+  .statsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .formFooter,
+  .connectionCardHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primaryButton,
+  .deleteControl,
+  .dangerButton {
+    width: 100%;
+  }
+
+  .deleteControl,
+  .deleteMessage {
+    max-width: none;
+    text-align: left;
+  }
+
+  .connectionList {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 22rem) {
+  .pageHeader {
+    padding-inline: 1.15rem;
+  }
+
+  .panelHeader,
+  .panelBody {
+    padding-inline: 1rem;
+  }
+
+  .connectionCard {
+    padding: 0.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control,
+  .primaryButton,
+  .dangerButton {
+    transition: none;
+  }
+
+  .primaryButton:hover:not(:disabled) {
+    transform: none;
+  }
+}

@@ -1,0 +1,911 @@
+.page {
+  container: buildings-page / inline-size;
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding: clamp(1.5rem, 3vw, 2.75rem) clamp(1rem, 3vw, 2.5rem) 3.5rem;
+}
+
+.pageHeader {
+  position: relative;
+  display: flex;
+  min-height: 10.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 91% 14%, rgb(255 89 0 / 0.12), transparent 16rem),
+    linear-gradient(135deg, var(--surface) 0%, var(--surface-secondary) 100%);
+  box-shadow: var(--shadow-sm);
+}
+
+.headerCopy {
+  position: relative;
+  z-index: 1;
+  max-width: 46rem;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
+  color: var(--brand-primary-active);
+  font-size: 0.72rem;
+  font-weight: 730;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.eyebrowNode {
+  width: 0.52rem;
+  height: 0.52rem;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+
+.pageTitle {
+  color: var(--text-primary);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  line-height: 1.03;
+}
+
+.pageDescription {
+  max-width: 44rem;
+  margin-top: 0.8rem;
+  color: var(--text-secondary);
+  font-size: clamp(0.94rem, 1.5vw, 1.03rem);
+  line-height: 1.65;
+}
+
+.headerMarker {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(255 89 0 / 0.2);
+  border-radius: var(--radius-xl);
+  color: var(--brand-primary-active);
+  background: var(--brand-primary-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.headerMarker svg {
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.65;
+}
+
+.headerRoute {
+  position: absolute;
+  width: 16rem;
+  height: 8rem;
+  opacity: 0.68;
+  inset: -1rem 6rem auto auto;
+  pointer-events: none;
+}
+
+.headerRoute::before {
+  position: absolute;
+  width: 12rem;
+  height: 5rem;
+  border-bottom: 1px solid rgb(255 89 0 / 0.24);
+  border-left: 1px solid rgb(255 89 0 / 0.24);
+  border-radius: 0 0 0 4rem;
+  content: "";
+  inset: 0 auto auto 1rem;
+  transform: rotate(-8deg);
+}
+
+.headerRoute span {
+  position: absolute;
+  width: 0.58rem;
+  height: 0.58rem;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-soft);
+}
+
+.headerRoute span:first-child {
+  inset: 3.5rem auto auto 0.78rem;
+}
+
+.headerRoute span:last-child {
+  inset: auto 2.7rem 1.75rem auto;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.managementLayout {
+  display: grid;
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.panel {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.35rem clamp(1.15rem, 2.5vw, 1.75rem);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-secondary);
+}
+
+.panelHeading {
+  min-width: 0;
+}
+
+.panelKicker {
+  margin-bottom: 0.35rem;
+  color: var(--brand-primary-active);
+  font-size: 0.67rem;
+  font-weight: 740;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.panelTitle {
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 720;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.panelDescription {
+  max-width: 45rem;
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.panelBody {
+  padding: clamp(1.15rem, 2.5vw, 1.75rem);
+}
+
+.createPanel {
+  min-width: 0;
+}
+
+.directoryPanel {
+  container: directory / inline-size;
+  min-width: 0;
+}
+
+.directoryHeader {
+  align-items: center;
+}
+
+.searchForm {
+  display: flex;
+  width: min(100%, 28rem);
+  flex: 0 0 auto;
+  gap: 0.55rem;
+}
+
+.searchControl {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+}
+
+.searchControl svg {
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+  inset: 50% auto auto 0.8rem;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 680;
+  line-height: 1.3;
+}
+
+.control {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.62rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--surface);
+  font-size: 0.85rem;
+  font-weight: 480;
+  line-height: 1.4;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.control::placeholder {
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.control:hover:not(:disabled) {
+  border-color: var(--text-muted);
+}
+
+.control:focus-visible {
+  border-color: var(--focus-ring);
+  outline: 3px solid color-mix(in srgb, var(--focus-ring) 22%, transparent);
+  outline-offset: 1px;
+}
+
+.control:disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+  background: var(--surface-secondary);
+}
+
+.searchInput {
+  padding-left: 2.35rem;
+}
+
+.textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.primaryButton,
+.dangerButton {
+  display: inline-flex;
+  min-height: 2.75rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 690;
+  line-height: 1.2;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.primaryButton {
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--brand-primary-active);
+  color: var(--surface);
+  background: var(--brand-primary-active);
+  box-shadow: 0 6px 14px rgb(184 63 0 / 0.16);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand-primary-active) 88%, black);
+  transform: translateY(-1px);
+}
+
+.dangerButton {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--error) 28%, var(--border));
+  color: var(--error);
+  background: var(--surface);
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--error) 7%, var(--surface));
+}
+
+.primaryButton:disabled,
+.dangerButton:disabled {
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: var(--surface-secondary);
+  box-shadow: none;
+  transform: none;
+  opacity: 0.72;
+}
+
+.buildingForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.formFields {
+  display: grid;
+  gap: 1rem;
+}
+
+.locationSection {
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+
+.locationPickerShell {
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-secondary);
+}
+
+.locationPickerShell > div {
+  gap: 0.7rem;
+}
+
+.locationPickerShell > div > div:first-child {
+  gap: 1rem;
+}
+
+.locationPickerShell > div > div:first-child > span {
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.locationPickerShell > div > div:first-child > button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--brand-primary-active);
+  background: var(--surface);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.locationPickerShell > div > div:first-child > button:hover {
+  border-color: rgb(255 89 0 / 0.45);
+  background: var(--brand-primary-soft);
+  text-decoration: none;
+}
+
+.locationPickerShell > div > div:nth-child(2) {
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.42);
+}
+
+.locationPickerShell [class~="h-[220px]"] {
+  height: clamp(17rem, 38vw, 22rem) !important;
+}
+
+.locationPickerShell [class~="h-[480px]"] {
+  height: min(64dvh, 36rem) !important;
+  min-height: 20rem;
+}
+
+.locationPickerShell > div > div:nth-child(3) {
+  align-items: flex-start;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.locationPickerShell > div > div:nth-child(3) > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-geist-mono), monospace;
+}
+
+.locationPickerShell > div > div:nth-child(3) > button {
+  min-height: 2rem;
+  cursor: pointer;
+  padding-inline: 0.35rem;
+  color: var(--error);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.locationPickerShell > div > div:nth-child(3) > button:hover {
+  text-decoration: underline;
+}
+
+.locationPickerShell :global(.leaflet-control-zoom) {
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.locationPickerShell :global(.leaflet-control-zoom a) {
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.locationPickerShell :global(.leaflet-control-attribution) {
+  color: var(--text-muted);
+  background: rgb(255 255 255 / 0.88);
+  font-size: 0.58rem;
+}
+
+.mapSkeleton {
+  width: 100%;
+  height: clamp(17rem, 38vw, 22rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.66) 45%, transparent 60%),
+    var(--surface-secondary);
+  background-size: 220% 100%;
+  animation: mapLoading 1.4s ease-in-out infinite;
+}
+
+.mapHint {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.formFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.15rem;
+}
+
+.formSpacer {
+  min-width: 0;
+}
+
+.formMessage,
+.deleteMessage {
+  color: var(--error);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.formMessageSuccess {
+  color: var(--success);
+}
+
+.buildingList {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  background: var(--surface-secondary);
+}
+
+.buildingCard {
+  min-width: 0;
+  padding: 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.buildingSummary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.buildingIdentity {
+  min-width: 0;
+}
+
+.buildingTitleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.buildingTitle {
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 720;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+
+.buildingDescription {
+  max-width: 48rem;
+  margin-top: 0.55rem;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.metaItem,
+.coordinateLink {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: var(--surface-secondary);
+  font-size: 0.67rem;
+  font-weight: 620;
+  line-height: 1.3;
+}
+
+.metaItem svg,
+.coordinateLink svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.coordinateLink {
+  max-width: 100%;
+  color: var(--info);
+  font-family: var(--font-geist-mono), monospace;
+  text-decoration: none;
+}
+
+.coordinateLink span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coordinateLink:hover {
+  border-color: color-mix(in srgb, var(--info) 35%, var(--border));
+  background: color-mix(in srgb, var(--info) 5%, var(--surface));
+  text-decoration: underline;
+}
+
+.deleteControl {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.deleteMessage {
+  max-width: 13rem;
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+.editDetails {
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+}
+
+.editSummary {
+  display: flex;
+  min-height: 2.9rem;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.8rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 690;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.editSummary::-webkit-details-marker {
+  display: none;
+}
+
+.editSummary:hover {
+  color: var(--brand-primary-active);
+  background: var(--brand-primary-soft);
+}
+
+.editSummaryLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editSummaryLabel svg,
+.editChevron {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.editChevron {
+  transition: transform 150ms ease;
+}
+
+.editDetails[open] .editChevron {
+  transform: rotate(180deg);
+}
+
+.editContent {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.feedback,
+.emptyState {
+  margin: 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.feedback {
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--error) 24%, var(--border));
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 6%, var(--surface));
+}
+
+.emptyState {
+  padding: 3.5rem 1.5rem;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  text-align: center;
+}
+
+.emptyNode {
+  width: 0.65rem;
+  height: 0.65rem;
+  margin: 0 auto 0.9rem;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 4px var(--brand-primary-soft);
+}
+
+.emptyTitle {
+  color: var(--text-primary);
+  font-weight: 680;
+}
+
+.emptyDescription {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+@keyframes mapLoading {
+  0% {
+    background-position: 130% 0;
+  }
+
+  100% {
+    background-position: -130% 0;
+  }
+}
+
+@container buildings-page (min-width: 60rem) {
+  .managementLayout {
+    grid-template-columns: minmax(25rem, 0.9fr) minmax(32rem, 1.1fr);
+  }
+}
+
+@container directory (max-width: 38rem) {
+  .directoryHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .searchForm {
+    width: 100%;
+  }
+
+  .buildingSummary {
+    flex-direction: column;
+  }
+
+  .deleteControl {
+    width: 100%;
+    text-align: left;
+  }
+
+  .deleteMessage {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+@media (max-width: 54rem) {
+  .pageHeader {
+    min-height: 0;
+    align-items: center;
+  }
+
+  .headerRoute {
+    right: -4rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .page {
+    padding-inline: 0.85rem;
+    padding-top: 1rem;
+  }
+
+  .pageHeader,
+  .panel {
+    border-radius: var(--radius-lg);
+  }
+
+  .headerMarker {
+    display: none;
+  }
+
+  .statsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .searchForm {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .searchForm .primaryButton,
+  .formFooter .primaryButton,
+  .deleteControl .dangerButton {
+    width: 100%;
+  }
+
+  .formFooter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .buildingList {
+    padding: 0.75rem;
+  }
+
+  .buildingCard {
+    padding: 1rem;
+  }
+
+  .locationPickerShell {
+    padding: 0.7rem;
+  }
+
+  .locationPickerShell > div > div:first-child {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .locationPickerShell > div > div:first-child > button {
+    width: 100%;
+  }
+
+  .metadata {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .metaItem,
+  .coordinateLink {
+    width: 100%;
+  }
+}
+
+@media (max-width: 22rem) {
+  .pageHeader {
+    padding-inline: 1.15rem;
+  }
+
+  .panelHeader,
+  .panelBody {
+    padding-inline: 1rem;
+  }
+
+  .locationPickerShell [class~="h-[220px]"] {
+    height: 16rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control,
+  .primaryButton,
+  .dangerButton,
+  .locationPickerShell > div > div:first-child > button,
+  .editSummary,
+  .editChevron {
+    transition: none;
+  }
+
+  .primaryButton:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .mapSkeleton {
+    animation: none;
+  }
+}

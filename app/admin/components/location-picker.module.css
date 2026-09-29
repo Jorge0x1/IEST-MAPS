@@ -1,0 +1,129 @@
+.coordinatePanel {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--border);
+}
+
+.coordinateIntro {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.coordinateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+  color: var(--text-primary);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.control {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 600;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.control:hover {
+  border-color: color-mix(in srgb, var(--brand-primary) 38%, var(--border));
+}
+
+.control:focus-visible {
+  border-color: var(--brand-primary);
+  outline: 3px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  outline-offset: 1px;
+}
+
+.coordinateActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.applyButton {
+  flex-shrink: 0;
+  min-height: 2.55rem;
+  cursor: pointer;
+  border: 1px solid var(--brand-primary-active);
+  border-radius: var(--radius-md);
+  background: var(--brand-primary);
+  color: #fff;
+  padding: 0.6rem 0.9rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.applyButton:hover {
+  background: var(--brand-primary-hover);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  transform: translateY(-1px);
+}
+
+.applyButton:active {
+  transform: translateY(0);
+}
+
+.applyButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--brand-primary) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.coordinateError {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: right;
+}
+
+@media (max-width: 40rem) {
+  .coordinateGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .coordinateActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .applyButton {
+    width: 100%;
+  }
+
+  .coordinateError {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control,
+  .applyButton {
+    transition: none;
+  }
+}

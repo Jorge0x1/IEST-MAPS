@@ -9,6 +9,10 @@ export type EstadoCambioRol = {
   mensaje: string;
 };
 
+export type ResultadoCambioAcceso =
+  | { ok: true }
+  | { ok: false; mensaje: string };
+
 const rolesInstitucionales = new Set<RolUsuario>([
   "administrador",
   "guardia",
@@ -131,9 +135,14 @@ export async function cambiarRol(
 export async function cambiarEstadoAcceso(
   profileId: string,
   activar: boolean,
-): Promise<void> {
+): Promise<ResultadoCambioAcceso> {
   const { profile: administrador } = await requerirRol("administrador");
-  if (profileId === administrador.id) return;
+  if (profileId === administrador.id) {
+    return {
+      ok: false,
+      mensaje: "No puedes cambiar el acceso de tu propia cuenta.",
+    };
+  }
 
   const supabase = await createClient();
   const ahora = new Date().toISOString();
@@ -142,7 +151,12 @@ export async function cambiarEstadoAcceso(
     .update({ activo: activar, updated_at: ahora })
     .eq("id", profileId);
 
-  if (error) return;
+  if (error) {
+    return {
+      ok: false,
+      mensaje: "No fue posible actualizar el acceso. Inténtalo nuevamente.",
+    };
+  }
 
   await supabase
     .from("usuarios_autorizados")
@@ -150,6 +164,7 @@ export async function cambiarEstadoAcceso(
     .eq("profile_id", profileId);
 
   revalidatePath("/admin/dashboard");
+  return { ok: true };
 }
 
 export async function eliminarAltaPendiente(altaId: string): Promise<void> {
