@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { guardarAlta, type EstadoCambioRol } from "./actions";
+import styles from "./dashboard.module.css";
 
 const estadoInicial: EstadoCambioRol = { ok: false, mensaje: "" };
 
@@ -14,27 +15,38 @@ export function CreateUserForm() {
   }, [estado.ok]);
 
   return (
-    <form ref={formRef} action={action} className="grid gap-4 lg:grid-cols-[1fr_1.4fr_0.8fr_auto] lg:items-end">
-      <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+    <form ref={formRef} action={action} className={styles.createForm}>
+      <label className={styles.field}>
         Nombre
-        <input name="nombre" maxLength={100} placeholder="Nombre de la persona" className="rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-900 placeholder:text-slate-400" />
+        <input name="nombre" maxLength={100} placeholder="Nombre de la persona" className={styles.control} />
       </label>
-      <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+      <label className={styles.field}>
         Correo institucional
-        <input name="correo" type="email" required pattern="[^@\s]+@iest\.edu\.mx" placeholder="nombre@iest.edu.mx" className="rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-900 placeholder:text-slate-400" />
+        <input
+          name="correo"
+          type="email"
+          required
+          pattern="[^@\s]+@iest\.edu\.mx"
+          placeholder="nombre@iest.edu.mx"
+          className={styles.control}
+        />
       </label>
-      <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+      <label className={styles.field}>
         Rol inicial
-        <select name="rol" defaultValue="alumno" className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900">
+        <select name="rol" defaultValue="alumno" className={styles.control}>
           <option value="alumno">Alumno</option>
           <option value="guardia">Guardia</option>
           <option value="administrador">Administrador</option>
         </select>
       </label>
-      <button disabled={pendiente} className="rounded-lg bg-sky-700 px-5 py-2.5 font-semibold text-white hover:bg-sky-800 disabled:bg-slate-300">
+      <button disabled={pendiente} className={styles.primaryButton}>
         {pendiente ? "Guardando…" : "Dar de alta"}
       </button>
-      {estado.mensaje ? <p role="status" className={`text-sm lg:col-span-4 ${estado.ok ? "text-emerald-700" : "text-red-700"}`}>{estado.mensaje}</p> : null}
+      {estado.mensaje ? (
+        <p role="status" className={`${styles.formMessage} ${estado.ok ? styles.messageSuccess : styles.messageError}`}>
+          {estado.mensaje}
+        </p>
+      ) : null}
     </form>
   );
 }

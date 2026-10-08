@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { actualizarConexion, crearConexion, type EstadoConexion } from "./actions";
-import { distanciaMetros } from "../components/geo";
+import styles from "./conexiones.module.css";
 
 const estadoInicial: EstadoConexion = { ok: false, mensaje: "" };
 
@@ -72,37 +72,16 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
     }
   }, [estado, conexion]);
 
-  useEffect(() => {
-    if (costoTocadoRef.current) return;
-    const origen = nodosPorId.get(origenId);
-    const destino = nodosPorId.get(destinoId);
-    if (!origen || !destino || origen.lat === null || origen.lng === null || destino.lat === null || destino.lng === null) {
-      return;
-    }
-    const distancia = distanciaMetros(origen.lat, origen.lng, destino.lat, destino.lng);
-    if (costoInputRef.current) {
-      costoInputRef.current.value = distancia.toFixed(2);
-    }
-  }, [origenId, destinoId, nodosPorId]);
-
-  const campoSelect = "rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-950";
-  const hayCoordenadas =
-    nodosPorId.get(origenId)?.lat != null &&
-    nodosPorId.get(origenId)?.lng != null &&
-    nodosPorId.get(destinoId)?.lat != null &&
-    nodosPorId.get(destinoId)?.lng != null;
-
   return (
-    <form ref={formRef} action={formAction} className="grid gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid min-w-0 gap-1.5 text-sm font-medium text-slate-700">
-          Nodo de origen
+    <form ref={formRef} action={formAction} className={styles.connectionForm}>
+      <div className={styles.nodeSelectors}>
+        <label className={styles.field}>
+          <span>Nodo de origen</span>
           <select
             name="nodo_origen_id"
             required
-            value={origenId}
-            onChange={(evento) => setOrigenId(evento.target.value)}
-            className={campoSelect}
+            defaultValue={conexion?.nodo_origen_id ?? ""}
+            className={styles.control}
           >
             <option value="" disabled>Selecciona un nodo</option>
             {grupos.map(([edificio, opciones]) => (
@@ -116,6 +95,19 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
             ))}
           </select>
         </label>
+
+        <div className={styles.selectorLink} aria-hidden="true">
+          <span />
+          <span />
+        </div>
+
+        <label className={styles.field}>
+          <span>Nodo de destino</span>
+          <select
+            name="nodo_destino_id"
+            required
+            defaultValue={conexion?.nodo_destino_id ?? ""}
+            className={styles.control}
         <label className="grid min-w-0 gap-1.5 text-sm font-medium text-slate-700">
           Nodo de destino
           <select
@@ -139,6 +131,19 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
         </label>
       </div>
 
+      <div className={styles.connectionSettings}>
+        <label className={styles.field}>
+          <span>Costo (opcional)</span>
+          <input
+            name="costo"
+            type="number"
+            min={0}
+            step="any"
+            defaultValue={conexion?.costo ?? ""}
+            placeholder="Distancia, tiempo o peso manual"
+            className={styles.control}
+          />
+        </label>
       <label className="grid gap-1.5 text-sm font-medium text-slate-700">
         Costo (opcional)
         <input
@@ -161,17 +166,27 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
         </span>
       </label>
 
-      <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-        <input name="bidireccional" type="checkbox" defaultChecked={conexion?.bidireccional ?? true} className="mt-0.5 size-4 accent-sky-700" />
-        <span>
-          <strong className="block font-semibold text-slate-900">Bidireccional</strong>
-          Se puede recorrer en ambos sentidos. Desactívalo para una conexión de un solo sentido.
-        </span>
-      </label>
+        <label className={styles.directionOption}>
+          <input
+            name="bidireccional"
+            type="checkbox"
+            defaultChecked={conexion?.bidireccional ?? true}
+            className={styles.checkbox}
+          />
+          <span>
+            <strong>Bidireccional</strong>
+            Se puede recorrer en ambos sentidos. Desactívalo para una conexión de un solo sentido.
+          </span>
+        </label>
+      </div>
 
-      <div className="flex items-center justify-between gap-4">
-        {estado.mensaje ? <p role="status" className={`text-sm ${estado.ok ? "text-emerald-700" : "text-red-700"}`}>{estado.mensaje}</p> : <span />}
-        <button disabled={pendiente || nodos.length < 2} className="rounded-lg bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:bg-slate-300">
+      <div className={styles.formFooter}>
+        {estado.mensaje ? (
+          <p role="status" className={`${styles.formMessage} ${estado.ok ? styles.formMessageSuccess : ""}`}>
+            {estado.mensaje}
+          </p>
+        ) : <span className={styles.formSpacer} />}
+        <button disabled={pendiente || nodos.length < 2} className={styles.primaryButton}>
           {pendiente ? "Guardando…" : conexion ? "Guardar cambios" : "Crear conexión"}
         </button>
       </div>
