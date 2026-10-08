@@ -236,6 +236,13 @@
   line-height: 1.3;
 }
 
+.fieldHint {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
 .control {
   width: 100%;
   min-width: 0;

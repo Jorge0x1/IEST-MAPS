@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { actualizarConexion, crearConexion, type EstadoConexion } from "./actions";
+import { distanciaMetros } from "../components/geo";
 import styles from "./conexiones.module.css";
 
 const estadoInicial: EstadoConexion = { ok: false, mensaje: "" };
@@ -72,6 +73,25 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
     }
   }, [estado, conexion]);
 
+  useEffect(() => {
+    if (costoTocadoRef.current) return;
+    const origen = nodosPorId.get(origenId);
+    const destino = nodosPorId.get(destinoId);
+    if (!origen || !destino || origen.lat === null || origen.lng === null || destino.lat === null || destino.lng === null) {
+      return;
+    }
+    const distancia = distanciaMetros(origen.lat, origen.lng, destino.lat, destino.lng);
+    if (costoInputRef.current) {
+      costoInputRef.current.value = distancia.toFixed(2);
+    }
+  }, [origenId, destinoId, nodosPorId]);
+
+  const hayCoordenadas =
+    nodosPorId.get(origenId)?.lat != null &&
+    nodosPorId.get(origenId)?.lng != null &&
+    nodosPorId.get(destinoId)?.lat != null &&
+    nodosPorId.get(destinoId)?.lng != null;
+
   return (
     <form ref={formRef} action={formAction} className={styles.connectionForm}>
       <div className={styles.nodeSelectors}>
@@ -80,7 +100,8 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
           <select
             name="nodo_origen_id"
             required
-            defaultValue={conexion?.nodo_origen_id ?? ""}
+            value={origenId}
+            onChange={(evento) => setOrigenId(evento.target.value)}
             className={styles.control}
           >
             <option value="" disabled>Selecciona un nodo</option>
@@ -106,16 +127,9 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
           <select
             name="nodo_destino_id"
             required
-            defaultValue={conexion?.nodo_destino_id ?? ""}
-            className={styles.control}
-        <label className="grid min-w-0 gap-1.5 text-sm font-medium text-slate-700">
-          Nodo de destino
-          <select
-            name="nodo_destino_id"
-            required
             value={destinoId}
             onChange={(evento) => setDestinoId(evento.target.value)}
-            className={campoSelect}
+            className={styles.control}
           >
             <option value="" disabled>Selecciona un nodo</option>
             {grupos.map(([edificio, opciones]) => (
@@ -135,36 +149,24 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
         <label className={styles.field}>
           <span>Costo (opcional)</span>
           <input
+            ref={costoInputRef}
             name="costo"
             type="number"
             min={0}
             step="any"
             defaultValue={conexion?.costo ?? ""}
+            onChange={() => {
+              costoTocadoRef.current = true;
+            }}
             placeholder="Distancia, tiempo o peso manual"
             className={styles.control}
           />
+          <span className={styles.fieldHint}>
+            {hayCoordenadas
+              ? "Se sugirió la distancia real en metros entre ambos nodos; puedes cambiarla."
+              : "Sin coordenadas en alguno de los dos nodos no se puede sugerir la distancia."}
+          </span>
         </label>
-      <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-        Costo (opcional)
-        <input
-          ref={costoInputRef}
-          name="costo"
-          type="number"
-          min={0}
-          step="any"
-          defaultValue={conexion?.costo ?? ""}
-          onChange={() => {
-            costoTocadoRef.current = true;
-          }}
-          placeholder="Distancia, tiempo o peso manual"
-          className="rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-950"
-        />
-        <span className="text-xs font-normal text-slate-500">
-          {hayCoordenadas
-            ? "Se sugirió la distancia real en metros entre ambos nodos; puedes cambiarla."
-            : "Sin coordenadas en alguno de los dos nodos no se puede sugerir la distancia."}
-        </span>
-      </label>
 
         <label className={styles.directionOption}>
           <input

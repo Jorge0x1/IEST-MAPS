@@ -1,8 +1,5 @@
-import Link from "next/link";
-import { DestinationForm, type DestinoInicial, type EdificioOpcion } from "./destination-form";
+import { DestinationForm, type EdificioOpcion } from "./destination-form";
 import { DeleteDestinationButton } from "./delete-destination-button";
-import styles from "./destinos.module.css";
-import { StatCard, StatusBadge } from "../components/admin-ui";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 
@@ -66,7 +63,7 @@ export default async function DestinosPage({ searchParams }: { searchParams: Pro
   ]);
 
   const edificios = (edificiosResult.data ?? []) as EdificioOpcion[];
-  const destinos = (destinosResult.data ?? []) as Destino[];
+  const destinos = (destinosResult.data ?? []) as unknown as Destino[];
 
   const termino = normalizar(buscar.trim());
   const destinosFiltrados = termino
