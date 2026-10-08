@@ -29,8 +29,8 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 - **Migraciones:** nunca editar una migración ya aplicada. Todo cambio de esquema va en
   un archivo nuevo `supabase/migrations/NNNN_nombre.sql`.
-- **Estado de migraciones:** `0005` a `0009` existen en el repo pero AÚN NO se han
-  aplicado en Supabase (el código ya las asume). Actualizar esta línea al aplicarlas.
+- **Estado de migraciones:** `0001` a `0009` están aplicadas en Supabase. Actualizar
+  esta línea al agregar una nueva.
 - **Service role:** `utils/supabase/service.ts` ignora RLS. Solo se importa desde
   archivos `"use server"` (hoy `lib/rutas/actions.ts`), y cada acción valida sesión o
   token antes de usarlo. `SUPABASE_SERVICE_ROLE_KEY` nunca lleva prefijo `NEXT_PUBLIC_`.
@@ -70,8 +70,10 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 - **Administrador:** usuarios y roles, edificios, nodos y conexiones, trazador de pasillos.
 - **Guardia:** registra visitantes, genera QR, ve visitas activas, finaliza visitas.
-- **Alumno:** login con Google institucional. Hoy solo dashboard. Pendiente: búsqueda
-  de destinos, origen, navegación.
+- **Alumno:** login con Google institucional. `/usuario/dashboard`: busca destinos por
+  nombre/alias mientras escribe (`lib/busqueda.ts`, filtrado en el navegador), elige
+  entrada como origen y ve la ruta en lista de pasos vía `calcularRuta`. Pendiente: GPS
+  y mapa.
 - **Visitante:** entra por QR (`/visitante/ruta`), ve su visita, su ruta fija como lista
   de pasos (con opción de evitar escaleras) y puede finalizarla. Pendiente: dibujar la
   ruta en el mapa.
@@ -94,9 +96,9 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 ## Estado y pendientes
 
-El checklist detallado vive en `docs/estado-proyecto.md` (importarlo solo cuando haga
+El checklist detallado vive en `docs/PROJECT_STATUS.md` (importarlo solo cuando haga
 falta, para no inflar este archivo).
 
-Siguiente bloque: aplicar migraciones 0005 a 0009 y probar el trazador y la ruta del
-visitante de punta a punta; después, vista del alumno (búsqueda de destinos por
-nombre/alias, origen por GPS o entrada manual) usando `calcularRuta`.
+Siguiente bloque: completar el grafo real (pasillos conectados a entradas y destinos,
+escaleras/elevadores entre pisos) y probar rutas de punta a punta; después, mapa
+exterior con Leaflet.

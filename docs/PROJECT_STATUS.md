@@ -1,6 +1,6 @@
 # IEST-MAPS v2 — estado del proyecto
 
-Última actualización: 27 de septiembre de 2026.
+Última actualización: 8 de octubre de 2026.
 
 ## Objetivo
 
@@ -26,7 +26,8 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - Gestiona usuarios autorizados y sus roles.
 - Activa o revoca el acceso de usuarios.
 - Gestiona edificios.
-- Pendiente: gestionar destinos/nodos, conexiones, salones, oficinas y maestros.
+- Gestiona destinos/nodos y conexiones; traza pasillos en el mapa.
+- Pendiente: salones, oficinas y maestros como catálogos propios.
 
 ### Guardia
 
@@ -38,8 +39,10 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 ### Alumno
 
 - Accede mediante Google con correo institucional autorizado.
-- Actualmente cuenta con dashboard protegido por rol.
-- Pendiente: búsqueda de destinos, selección de origen y navegación.
+- Busca destinos por nombre o alias mientras escribe (sin distinguir acentos).
+- Elige la entrada por la que llega y ve la ruta como lista de pasos, con opción de
+  evitar escaleras.
+- Pendiente: origen por GPS y ruta dibujada en el mapa.
 
 ### Visitante
 
@@ -117,12 +120,6 @@ Las migraciones existentes y aplicadas son:
    `crear_cadena_nodos` para crear en una transacción los nodos y conexiones de un
    pasillo trazado en el mapa.
 
-Existen en el repo pero **aún no se aplican** en Supabase (el código ya las asume):
-
-5. `0005_destino_nodo_visitas.sql`: visitas ligadas a nodo de destino y de origen.
-6. `0006_conexiones_sin_duplicados.sql`: sin conexiones duplicadas ni costos negativos.
-7. `0007_coordenadas_opcionales.sql`: `lat`/`lng` opcionales en nodos.
-8. `0008_cadena_de_nodos.sql`: `distancia_metros()` y `crear_cadena_nodos()`.
 9. `0009_visita_ids_para_ruta.sql`: `obtener_visita_por_token` devuelve también
    `origen_nodo_id` y `destino_nodo_id` para el motor de rutas.
 
@@ -220,21 +217,23 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 
 ### 2. Mejorar el flujo del guardia
 
-- [ ] Cambiar la selección de edificio por un destino específico.
-- [ ] Guardar `destino_nodo_id` en el registro de la visita.
-- [ ] Definir y guardar una entrada/origen fijo para el visitante.
-- [ ] Guardar `origen_nodo_id` en el registro de la visita.
+- [x] Cambiar la selección de edificio por un destino específico.
+- [x] Guardar `destino_nodo_id` en el registro de la visita.
+- [x] Definir y guardar una entrada/origen fijo para el visitante.
+- [x] Guardar `origen_nodo_id` en el registro de la visita.
 - [ ] Mostrar destino y piso en el modal del QR.
 - [ ] Añadir filtros de visitas por estado y fecha si el volumen lo requiere.
 - [ ] Revisar si el historial debe paginarse en vez de limitarse a 100 registros.
 
 ### 3. Experiencia del alumno
 
-- [ ] Diseñar la pantalla principal del alumno.
-- [ ] Crear búsqueda de destinos por nombre y alias.
-- [ ] Permitir usar ubicación GPS o seleccionar manualmente una entrada.
-- [ ] Mostrar información del destino antes de iniciar una ruta.
-- [ ] Permitir iniciar, cancelar y reiniciar una ruta.
+- [x] Diseñar la pantalla principal del alumno (`/usuario/dashboard`; diseño en
+  `docs/superpowers/specs/2026-10-08-vista-alumno-design.md`).
+- [x] Crear búsqueda de destinos por nombre y alias (`lib/busqueda.ts`, con pruebas).
+- [x] Seleccionar manualmente una entrada como origen.
+- [ ] Usar la ubicación GPS como origen (cuando exista el mapa).
+- [x] Mostrar información del destino antes de iniciar una ruta.
+- [x] Permitir iniciar, cancelar y reiniciar una ruta.
 
 ### 4. Motor de rutas
 
@@ -246,7 +245,7 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 - [x] Opción de evitar escaleras.
 - [ ] Agregar `SUPABASE_SERVICE_ROLE_KEY` también en las variables del despliegue.
 - [ ] Compactar pasos consecutivos de pasillo en una sola instrucción.
-- [ ] Usar `calcularRuta` desde la vista del alumno.
+- [x] Usar `calcularRuta` desde la vista del alumno.
 
 ### 5. Mapa exterior e interiores
 
@@ -287,9 +286,10 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 
 ## Próximo bloque recomendado
 
-Construir el CRUD de conexiones entre nodos, impidiendo duplicados y conexiones de un
-nodo consigo mismo. Después se conecta el formulario del guardia a destinos específicos
-y se definen los nodos de entrada que funcionarán como origen fijo de cada visita.
+Completar el grafo real del campus (conectar los pasillos trazados con entradas y
+destinos, y representar escaleras/elevadores entre pisos) y probar de punta a punta
+las rutas de visitante y alumno. Después, el mapa exterior con Leaflet para dibujar
+las rutas.
 
 ## Comandos habituales
 
