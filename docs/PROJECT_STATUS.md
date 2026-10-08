@@ -1,6 +1,6 @@
 # IEST-MAPS v2 — estado del proyecto
 
-Última actualización: 3 de septiembre de 2026.
+Última actualización: 27 de septiembre de 2026.
 
 ## Objetivo
 
@@ -109,6 +109,15 @@ Las migraciones existentes y aplicadas son:
 4. `0004_catalogo_destinos.sql`: tipo de nodo `servicio`, marca de destino buscable e
    índice para consultar el catálogo por edificio y piso.
 
+Existen en el repo pero **aún no se aplican** en Supabase (el código ya las asume):
+
+5. `0005_destino_nodo_visitas.sql`: visitas ligadas a nodo de destino y de origen.
+6. `0006_conexiones_sin_duplicados.sql`: sin conexiones duplicadas ni costos negativos.
+7. `0007_coordenadas_opcionales.sql`: `lat`/`lng` opcionales en nodos.
+8. `0008_cadena_de_nodos.sql`: `distancia_metros()` y `crear_cadena_nodos()`.
+9. `0009_visita_ids_para_ruta.sql`: `obtener_visita_por_token` devuelve también
+   `origen_nodo_id` y `destino_nodo_id` para el motor de rutas.
+
 Cuando se agregue una migración, debe crearse un archivo nuevo. No se deben editar las
 migraciones ya aplicadas para cambiar una base existente.
 
@@ -144,8 +153,27 @@ migraciones ya aplicadas para cambiar una base existente.
   que en el futuro se incorpore infraestructura adicional como beacons.
 - El grafo se almacena en las tablas `nodos` y `conexiones` de Supabase para que pueda
   administrarse sin desplegar código.
-- El cálculo de ruta se basará en un algoritmo de camino más corto; la ubicación exacta
-  donde se ejecutará se decidirá al implementar el módulo.
+### Motor de rutas
+
+- Dijkstra con cola de prioridad (montículo binario), en el servidor y en TypeScript.
+  No se implementa en PL/pgSQL.
+- `lib/rutas/dijkstra.ts`: funciones puras (`buscarRuta`, `explicarSinRuta`,
+  `pesoConexion`) sin acceso a red; pruebas en `lib/rutas/dijkstra.test.ts` (`npm test`).
+- Peso de cada conexión: `costo` si no es null; si no, la distancia real entre los dos
+  nodos (`lib/geo.ts`, misma fórmula que `distancia_metros()` en SQL); si falta alguna
+  coordenada, peso fijo 1.
+- `evitarEscaleras` excluye los nodos tipo `escalera` antes de calcular; los elevadores
+  siguen disponibles.
+- `lib/rutas/actions.ts` es el único punto de entrada. Carga todo el grafo con el
+  cliente service-role (`utils/supabase/service.ts`), porque el visitante no tiene sesión
+  y RLS solo deja leer el grafo a usuarios autenticados. Por eso cada acción valida antes:
+  - `calcularRuta(origenId, destinoId, opciones)`: requiere sesión activa.
+  - `calcularRutaDeVisita(token, opciones)`: valida el token y solo calcula la ruta fija
+    de esa visita activa; no acepta IDs arbitrarios.
+- El resultado incluye nombre, tipo, piso y edificio de cada nodo, y marca los pasos
+  con cambio de piso (sube/baja, y por qué escalera o elevador).
+- Los casos sin ruta (nodo sin conexiones, grafo desconectado, destino inalcanzable sin
+  escaleras, visita sin nodos asignados) devuelven un motivo y un mensaje para la UI.
 
 ## Flujo actual de una visita
 
@@ -156,7 +184,7 @@ migraciones ya aplicadas para cambiar una base existente.
 5. Aparece un modal con los datos principales y un QR grande.
 6. El visitante escanea el QR en ese momento.
 7. La URL abre `/visitante/ruta` y valida el token.
-8. Por ahora se muestran los datos de la visita y un espacio reservado para la ruta.
+8. Se muestran los datos de la visita y la ruta como lista de pasos (sin mapa todavía).
 9. El guardia o el visitante pueden finalizar la visita.
 
 ## Checklist pendiente
@@ -198,12 +226,15 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 
 ### 4. Motor de rutas
 
-- [ ] Definir formalmente el peso de las conexiones: distancia, tiempo o costo manual.
-- [ ] Decidir si el pathfinding se ejecutará en servidor o cliente.
-- [ ] Implementar y probar Dijkstra u otro algoritmo de camino más corto.
-- [ ] Manejar rutas sin conexión y datos incompletos sin romper la interfaz.
-- [ ] Generar instrucciones por tramo, edificio y piso.
-- [ ] Incorporar preferencias de accesibilidad, por ejemplo evitar escaleras.
+- [x] Definir formalmente el peso de las conexiones (costo → distancia → peso fijo).
+- [x] Decidir si el pathfinding se ejecutará en servidor o cliente (servidor).
+- [x] Implementar y probar Dijkstra.
+- [x] Manejar rutas sin conexión y datos incompletos sin romper la interfaz.
+- [x] Instrucciones básicas por paso, edificio y piso en la pantalla del visitante.
+- [x] Opción de evitar escaleras.
+- [ ] Agregar `SUPABASE_SERVICE_ROLE_KEY` también en las variables del despliegue.
+- [ ] Compactar pasos consecutivos de pasillo en una sola instrucción.
+- [ ] Usar `calcularRuta` desde la vista del alumno.
 
 ### 5. Mapa exterior e interiores
 

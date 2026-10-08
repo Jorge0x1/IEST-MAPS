@@ -53,14 +53,24 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
   const grupos = agruparPorEdificio(nodos);
   const nodosPorId = useMemo(() => new Map(nodos.map((nodo) => [nodo.id, nodo])), [nodos]);
 
+  // Tras crear una conexión se limpian los selects. Se ajusta el estado durante
+  // el render al detectar un resultado nuevo (patrón recomendado por React) en
+  // vez de hacerlo dentro de un efecto.
+  const [estadoPrevio, setEstadoPrevio] = useState(estado);
+  if (estado !== estadoPrevio) {
+    setEstadoPrevio(estado);
+    if (estado.ok && !conexion) {
+      setOrigenId("");
+      setDestinoId("");
+    }
+  }
+
   useEffect(() => {
     if (estado.ok && !conexion) {
       formRef.current?.reset();
-      setOrigenId("");
-      setDestinoId("");
       costoTocadoRef.current = false;
     }
-  }, [estado.ok, conexion]);
+  }, [estado, conexion]);
 
   useEffect(() => {
     if (costoTocadoRef.current) return;

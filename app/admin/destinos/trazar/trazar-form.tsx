@@ -26,12 +26,18 @@ export function TrazarForm({ edificios }: { edificios: { id: string; nombre: str
   const [estado, formAction, pendiente] = useActionState(crearCadenaNodos, estadoInicial);
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Tras un guardado exitoso se limpian los puntos. Se ajusta el estado durante
+  // el render al detectar un resultado nuevo (patrón recomendado por React) en
+  // vez de hacerlo dentro de un efecto.
+  const [estadoPrevio, setEstadoPrevio] = useState(estado);
+  if (estado !== estadoPrevio) {
+    setEstadoPrevio(estado);
+    if (estado.ok) setPuntos([]);
+  }
+
   useEffect(() => {
-    if (estado.ok) {
-      setPuntos([]);
-      formRef.current?.reset();
-    }
-  }, [estado.ok]);
+    if (estado.ok) formRef.current?.reset();
+  }, [estado]);
 
   return (
     <form ref={formRef} action={formAction} className="grid gap-4">

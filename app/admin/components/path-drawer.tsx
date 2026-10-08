@@ -27,9 +27,14 @@ export function PathDrawer({
   const mapaRef = useRef<L.Map | null>(null);
   const capaRef = useRef<L.LayerGroup | null>(null);
   const puntosRef = useRef(puntos);
-  puntosRef.current = puntos;
   const onCambioRef = useRef(onPuntosChange);
-  onCambioRef.current = onPuntosChange;
+
+  // Las refs se actualizan después de cada render (no durante), para que el
+  // manejador de clic del mapa siempre lea los puntos y el callback vigentes.
+  useEffect(() => {
+    puntosRef.current = puntos;
+    onCambioRef.current = onPuntosChange;
+  });
 
   // El mapa se crea una sola vez. El punto se agrega leyendo de una ref para
   // no tener que reiniciar el mapa (y perder el zoom/centro) en cada clic.
