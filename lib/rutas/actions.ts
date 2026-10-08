@@ -174,8 +174,7 @@ function leerOpciones(opciones?: OpcionesRuta): OpcionesRuta {
 }
 
 // Ruta entre dos nodos cualesquiera, para usuarios con sesión (alumno, guardia,
-// administrador). Aún no se usa desde la interfaz; queda lista para la vista
-// del alumno.
+// administrador). La usa la vista del alumno (/usuario/dashboard).
 export async function calcularRuta(
   origenId: string,
   destinoId: string,
