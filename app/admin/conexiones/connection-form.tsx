@@ -92,6 +92,16 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
     nodosPorId.get(destinoId)?.lat != null &&
     nodosPorId.get(destinoId)?.lng != null;
 
+  const opcionesNodos = grupos.map(([edificio, opciones]) => (
+    <optgroup key={edificio} label={edificio}>
+      {opciones.map((nodo) => (
+        <option key={nodo.id} value={nodo.id}>
+          {nodo.nombre} · {etiquetasTipo[nodo.tipo] ?? nodo.tipo} · Piso {nodo.piso}
+        </option>
+      ))}
+    </optgroup>
+  ));
+
   return (
     <form ref={formRef} action={formAction} className={styles.connectionForm}>
       <div className={styles.nodeSelectors}>
@@ -105,15 +115,7 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
             className={styles.control}
           >
             <option value="" disabled>Selecciona un nodo</option>
-            {grupos.map(([edificio, opciones]) => (
-              <optgroup key={edificio} label={edificio}>
-                {opciones.map((nodo) => (
-                  <option key={nodo.id} value={nodo.id}>
-                    {nodo.nombre} · {etiquetasTipo[nodo.tipo] ?? nodo.tipo} · Piso {nodo.piso}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
+            {opcionesNodos}
           </select>
         </label>
 
@@ -132,15 +134,7 @@ export function ConnectionForm({ nodos, conexion }: { nodos: NodoOpcion[]; conex
             className={styles.control}
           >
             <option value="" disabled>Selecciona un nodo</option>
-            {grupos.map(([edificio, opciones]) => (
-              <optgroup key={edificio} label={edificio}>
-                {opciones.map((nodo) => (
-                  <option key={nodo.id} value={nodo.id}>
-                    {nodo.nombre} · {etiquetasTipo[nodo.tipo] ?? nodo.tipo} · Piso {nodo.piso}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
+            {opcionesNodos}
           </select>
         </label>
       </div>

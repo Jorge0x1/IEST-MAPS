@@ -108,6 +108,14 @@ Las migraciones existentes y aplicadas son:
    hash y expiración del token, consulta pública controlada y finalización por token.
 4. `0004_catalogo_destinos.sql`: tipo de nodo `servicio`, marca de destino buscable e
    índice para consultar el catálogo por edificio y piso.
+5. `0005_destino_nodo_visitas.sql`: visitas ligadas a un nodo de destino buscable y a un
+   nodo de origen de tipo entrada.
+6. `0006_conexiones_sin_duplicados.sql`: bloqueo de conexiones duplicadas (incluida la
+   inversa de una bidireccional) y de costos negativos.
+7. `0007_coordenadas_opcionales.sql`: `lat`/`lng` de nodos pasan a ser opcionales.
+8. `0008_cadena_de_nodos.sql`: función `distancia_metros` (Haversine) y
+   `crear_cadena_nodos` para crear en una transacción los nodos y conexiones de un
+   pasillo trazado en el mapa.
 
 Existen en el repo pero **aún no se aplican** en Supabase (el código ya las asume):
 
@@ -202,8 +210,12 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 - [x] Agregar nombres alternativos o alias para búsquedas como “salón 204” o “servicios
   escolares”.
 - [x] Validar las coordenadas requeridas por el esquema actual de nodos.
-- [ ] Crear el CRUD de conexiones entre nodos.
-- [ ] Evitar conexiones inválidas, duplicadas o de un nodo consigo mismo.
+- [x] Crear el CRUD de conexiones entre nodos.
+- [x] Evitar conexiones inválidas, duplicadas o de un nodo consigo mismo.
+- [x] Sugerir como costo la distancia real en metros cuando ambos nodos tienen
+  coordenadas (editable por el administrador).
+- [x] Trazar un pasillo en el mapa (`/admin/destinos/trazar`) para crear una cadena de
+  nodos y sus conexiones de una sola vez.
 - [ ] Representar escaleras y elevadores como conexiones entre pisos.
 
 ### 2. Mejorar el flujo del guardia

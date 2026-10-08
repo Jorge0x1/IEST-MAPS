@@ -67,6 +67,19 @@
   line-height: 1.65;
 }
 
+.inlineLink {
+  color: var(--brand-primary-active);
+  font-weight: 600;
+}
+
+.inlineLink:hover {
+  text-decoration: underline;
+}
+
+.headerAction {
+  margin-top: 1.1rem;
+}
+
 .headerIcon {
   position: relative;
   z-index: 1;
