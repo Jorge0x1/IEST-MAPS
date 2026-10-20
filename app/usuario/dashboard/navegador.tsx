@@ -2,6 +2,7 @@
 
 import { useDeferredValue, useId, useMemo, useRef, useState, useTransition } from "react";
 import { ETIQUETA_TIPO, ListaPasos } from "@/app/components/pasos-ruta";
+import { MapaRuta } from "@/app/components/mapa-ruta";
 import { buscarDestinos } from "@/lib/busqueda";
 import { calcularRuta, type ResultadoRuta } from "@/lib/rutas/actions";
 
@@ -208,6 +209,7 @@ export function Navegador({ destinos, entradas }: { destinos: DestinoAlumno[]; e
                 </p>
                 <p className="text-sm text-slate-500">{ruta.pasos.length} pasos</p>
               </div>
+              <MapaRuta pasos={ruta.pasos} />
               <ListaPasos pasos={ruta.pasos} />
               <button type="button" onClick={volverABuscar} className="mt-5 w-full rounded-xl border border-[var(--border-strong)] bg-white px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50">
                 Cancelar ruta

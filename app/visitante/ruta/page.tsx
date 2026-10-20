@@ -3,6 +3,7 @@ import Link from "next/link";
 import { finalizarMiVisita } from "./actions";
 import { calcularRutaDeVisita, type ResultadoRuta } from "@/lib/rutas/actions";
 import { ListaPasos } from "@/app/components/pasos-ruta";
+import { MapaRuta } from "@/app/components/mapa-ruta";
 import { createClient } from "@/utils/supabase/server";
 
 type VisitaPublica = {
@@ -41,6 +42,7 @@ function SeccionRuta({ ruta, token, sinEscaleras }: { ruta: ResultadoRuta; token
         <p className="font-medium text-slate-800">Tu ruta{sinEscaleras ? " sin escaleras" : ""}</p>
         {alternar}
       </div>
+      <MapaRuta pasos={ruta.pasos} />
       <ListaPasos pasos={ruta.pasos} />
     </div>
   );

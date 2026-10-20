@@ -40,6 +40,9 @@ export type PasoRutaDetallado = {
   piso: number;
   edificioId: string | null;
   edificioNombre: string | null;
+  // Coordenadas del nodo para dibujar la ruta; null si el nodo no tiene (0007).
+  lat: number | null;
+  lng: number | null;
   costoAcumulado: number;
   cambioPiso: CambioPiso | null;
 };
@@ -161,6 +164,8 @@ async function calcularRutaSinValidar(
       piso: nodo.piso,
       edificioId: nodo.edificio_id,
       edificioNombre: nodo.edificio_id ? (nombreEdificio.get(nodo.edificio_id) ?? null) : null,
+      lat: nodo.lat,
+      lng: nodo.lng,
       costoAcumulado: paso.costoAcumulado,
       cambioPiso: anterior ? detectarCambioPiso(anterior, nodo) : null,
     };
