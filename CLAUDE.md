@@ -49,8 +49,12 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
   vincula en el primer login.
 - **Visitantes:** usan token propio del QR, sin cuenta de Supabase (NO usar Anonymous
   Sign-ins). Vigencia 12 h.
-- **Mapas:** Leaflet (NO MapLibre). Tiles de OpenStreetMap solo para herramientas del
-  admin; para producción evaluar otro proveedor de tiles.
+- **Mapas:** Leaflet (NO MapLibre). Tiles de OpenStreetMap para herramientas del admin
+  y, TEMPORALMENTE, como "mapa de prueba" de la ruta en alumno y visitante
+  (`app/components/mapa-base.ts`, función `crearCapaBase`, compartida por todos los mapas de
+  rutas y el mapa del grafo). Plan: cargar nodos
+  con coordenadas reales y sustituir la capa base por el SVG del campus con
+  `L.imageOverlay`. No usar tiles de OSM en producción.
 - **Grafo:** tablas `nodos` y `conexiones` en Supabase, administrables sin desplegar.
   Escaleras/elevadores conectan nodos entre pisos. No hay restricción de mismo
   edificio/piso en una conexión.
@@ -68,20 +72,26 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 ## Roles
 
-- **Administrador:** usuarios y roles, edificios, nodos y conexiones, trazador de pasillos.
+- **Administrador:** usuarios y roles, edificios, nodos y conexiones, trazador de pasillos,
+  mapa del grafo (`/admin/grafo`: diagnóstico, mapa y probar ruta; solo lectura).
 - **Guardia:** registra visitantes, genera QR, ve visitas activas, finaliza visitas.
 - **Alumno:** login con Google institucional. `/usuario/dashboard`: busca destinos por
   nombre/alias mientras escribe (`lib/busqueda.ts`, filtrado en el navegador), elige
-  entrada como origen y ve la ruta en lista de pasos vía `calcularRuta`. Pendiente: GPS
-  y mapa.
+  entrada como origen y ve la ruta (mapa de prueba + lista de pasos) vía `calcularRuta`.
+  Pendiente: GPS y SVG del campus.
 - **Visitante:** entra por QR (`/visitante/ruta`), ve su visita, su ruta fija como lista
-  de pasos (con opción de evitar escaleras) y puede finalizarla. Pendiente: dibujar la
-  ruta en el mapa.
+  de pasos y en el mapa de prueba (con opción de evitar escaleras) y puede finalizarla.
+  Pendiente: SVG del campus.
 
 ## Estructura relevante
 
 - `app/admin/components/location-picker.tsx`: selector de coordenadas con Leaflet.
 - `app/admin/components/path-drawer.tsx`: trazador de pasillos.
+- `lib/rutas/diagnostico.ts`: diagnóstico del grafo (red principal = la que tiene más
+  entradas; desconectados, aislados, destinos inalcanzables, pasillos buscables,
+  escaleras/elevadores sin otro piso). Lo usa `/admin/grafo`.
+- Los tooltips de Leaflet interpretan HTML: pasar todo dato de la base por
+  `escaparHtml()` (`app/components/mapa-base.ts`).
 - `app/admin/destinos/trazar/actions.ts`: Server Action `crearCadenaNodos`, llama a la
   función SQL `crear_cadena_nodos()` (una sola transacción, `SECURITY INVOKER`).
 
@@ -100,5 +110,5 @@ El checklist detallado vive en `docs/PROJECT_STATUS.md` (importarlo solo cuando 
 falta, para no inflar este archivo).
 
 Siguiente bloque: completar el grafo real (pasillos conectados a entradas y destinos,
-escaleras/elevadores entre pisos) y probar rutas de punta a punta; después, mapa
-exterior con Leaflet.
+escaleras/elevadores entre pisos) con coordenadas reales, probándolo en el mapa de
+prueba; después, sobreponer el SVG del campus georreferenciado.

@@ -82,6 +82,10 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - [x] Captura de nombre, descripción, latitud y longitud de edificios.
 - [x] CRUD de destinos/nodos con edificio, piso, tipo, alias y coordenadas.
 - [x] Clasificación de nodos entre destinos buscables y puntos auxiliares del recorrido.
+- [x] Mapa del grafo (`/admin/grafo`): todos los nodos y conexiones sobre Leaflet,
+  filtro por piso, diagnóstico de problemas (partes desconectadas, nodos aislados,
+  destinos inalcanzables, pasillos marcados como destino, escaleras/elevadores sin
+  otro piso, nodos sin coordenadas) y prueba de rutas entre cualquier par de nodos.
 
 ### Guardia y visitantes
 
@@ -189,7 +193,8 @@ migraciones ya aplicadas para cambiar una base existente.
 5. Aparece un modal con los datos principales y un QR grande.
 6. El visitante escanea el QR en ese momento.
 7. La URL abre `/visitante/ruta` y valida el token.
-8. Se muestran los datos de la visita y la ruta como lista de pasos (sin mapa todavía).
+8. Se muestran los datos de la visita, la ruta en un mapa de prueba (Leaflet + OSM) y
+   la lista de pasos.
 9. El guardia o el visitante pueden finalizar la visita.
 
 ## Checklist pendiente
@@ -250,13 +255,19 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 ### 5. Mapa exterior e interiores
 
 - [ ] Elegir y documentar la capa base definitiva para el mapa exterior.
-- [ ] Integrar Leaflet con coordenadas reales del campus.
+- [x] Integrar Leaflet con coordenadas reales del campus (mapa de prueba con tiles de
+  OSM en alumno y visitante: `app/components/mapa-ruta.tsx`; puntos calculados en
+  `lib/rutas/mapa.ts`, con pruebas).
+- [x] Dibujar la ruta sobre el mapa (línea, inicio, destino, pasos numerados y
+  cambios de piso; los pasos sin coordenadas se omiten y se avisa).
 - [ ] Mostrar la ubicación del usuario mediante Geolocation API con consentimiento.
 - [ ] Definir límites de precisión y estados cuando el GPS no esté disponible.
 - [ ] Terminar y limpiar el SVG del campus.
 - [ ] Dividir o preparar planos por edificio/piso según el formato final.
 - [ ] Georreferenciar los planos interiores cuando sea necesario.
-- [ ] Dibujar la ruta sobre el mapa y cambiar la capa visible por piso.
+- [ ] Sustituir la capa de OSM por el SVG georreferenciado (`L.imageOverlay` en
+  `crearCapaBase`).
+- [ ] Cambiar la capa visible por piso.
 - [ ] Pedir confirmación manual al completar una transición de piso.
 
 ### 6. Catálogos administrativos restantes
@@ -288,8 +299,8 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 
 Completar el grafo real del campus (conectar los pasillos trazados con entradas y
 destinos, y representar escaleras/elevadores entre pisos) y probar de punta a punta
-las rutas de visitante y alumno. Después, el mapa exterior con Leaflet para dibujar
-las rutas.
+las rutas de visitante y alumno en el mapa de prueba. Después, sobreponer el SVG del
+campus georreferenciado en lugar de los tiles de OpenStreetMap.
 
 ## Comandos habituales
 
