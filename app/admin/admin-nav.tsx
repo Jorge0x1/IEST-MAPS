@@ -9,6 +9,7 @@ const enlaces = [
   { href: "/admin/edificios", etiqueta: "Edificios", icono: "building" },
   { href: "/admin/destinos", etiqueta: "Destinos y nodos", icono: "destination" },
   { href: "/admin/conexiones", etiqueta: "Conexiones", icono: "connections" },
+  { href: "/admin/grafo", etiqueta: "Mapa del grafo", icono: "map" },
 ] as const;
 
 function NavIcon({ tipo }: { tipo: (typeof enlaces)[number]["icono"] }) {
@@ -26,6 +27,15 @@ function NavIcon({ tipo }: { tipo: (typeof enlaces)[number]["icono"] }) {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 21V5.5L13 3v18M13 8h7v13M7.5 8h2M7.5 12h2M7.5 16h2M16 12h1.5M16 16h1.5M2.5 21h19" />
+      </svg>
+    );
+  }
+
+  if (tipo === "map") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4Z" />
+        <path d="M9 4v13.5M15 6.5V20" />
       </svg>
     );
   }
