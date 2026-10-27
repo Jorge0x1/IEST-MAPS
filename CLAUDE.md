@@ -29,7 +29,7 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 - **Migraciones:** nunca editar una migración ya aplicada. Todo cambio de esquema va en
   un archivo nuevo `supabase/migrations/NNNN_nombre.sql`.
-- **Estado de migraciones:** `0001` a `0009` están aplicadas en Supabase. `0010`
+- **Estado de migraciones:** `0001` a `0010` están aplicadas en Supabase. `0010`
   (descripción y foto de destinos + bucket público `destinos`) está creada; actualizar
   esta línea cuando se aplique y al agregar una nueva.
 - **Service role:** `utils/supabase/service.ts` ignora RLS. Solo se importa desde
