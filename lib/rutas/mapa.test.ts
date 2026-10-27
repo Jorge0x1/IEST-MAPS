@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { puntosDeRuta, type PasoConUbicacion } from "./mapa.ts";
 
 function paso(id: string, lat: number | null, lng: number | null, extra: Partial<PasoConUbicacion> = {}): PasoConUbicacion {
-  return { id, nombre: `Nodo ${id}`, piso: 0, lat, lng, cambioPiso: null, ...extra };
+  return { id, nombre: `Nodo ${id}`, tipo: "salon", piso: 0, edificioId: "e1", lat, lng, cambioPiso: null, ...extra };
 }
 
 describe("puntosDeRuta", () => {
@@ -46,6 +46,22 @@ describe("puntosDeRuta", () => {
     const { puntos, omitidos } = puntosDeRuta([paso("a", 91, -97), paso("b", 22, -181), paso("c", Number.NaN, -97), paso("d", 22, -97)]);
     assert.equal(omitidos, 3);
     assert.deepEqual(puntos.map((p) => p.id), ["d"]);
+  });
+
+  it("un tramo de pasillo dibuja todos sus nodos pero numera solo el de en medio", () => {
+    const pasillo = (id: string, lng: number) => paso(id, 22.1, lng, { tipo: "pasillo" });
+    const { puntos, omitidos } = puntosDeRuta([
+      paso("s103", 22.1, -97.10),
+      pasillo("p6", -97.11),
+      pasillo("p5", -97.12),
+      pasillo("p4", -97.13),
+      paso("s101", 22.1, -97.14),
+    ]);
+    assert.equal(omitidos, 0);
+    assert.deepEqual(
+      puntos.map((p) => [p.id, p.numero, p.rol]),
+      [["s103", 1, "inicio"], ["p6", null, "paso"], ["p5", 2, "paso"], ["p4", null, "paso"], ["s101", 3, "destino"]],
+    );
   });
 
   it("acepta coordenadas en 0 (no las confunde con vacías)", () => {

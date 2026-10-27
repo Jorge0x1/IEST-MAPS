@@ -134,8 +134,10 @@ export default function MapaLeafletRuta({
     if (coordenadas.length > 1) {
       L.polyline(coordenadas, { color: COLOR_RUTA, weight: 5, opacity: 0.85 }).addTo(capa);
     }
-    // Inicio y destino al final para que queden encima de los pasos.
-    const orden = [...puntos].sort((a, b) => Number(a.rol === "inicio" || a.rol === "destino") - Number(b.rol === "inicio" || b.rol === "destino"));
+    // Solo llevan marcador los puntos numerados; los demás son vértices de la
+    // línea (nodos intermedios de un tramo de pasillo). Inicio y destino van al
+    // final para que queden encima de los pasos.
+    const orden = puntos.filter((p) => p.numero !== null).sort((a, b) => Number(a.rol === "inicio" || a.rol === "destino") - Number(b.rol === "inicio" || b.rol === "destino"));
     for (const punto of orden) {
       L.marker([punto.lat, punto.lng], { icon: icono(punto), keyboard: false })
         .bindTooltip(`${punto.numero}. ${escaparHtml(punto.nombre)} · ${ETIQUETA_ROL[punto.rol]} · Piso ${punto.piso}`, { direction: "top", offset: [0, -12] })

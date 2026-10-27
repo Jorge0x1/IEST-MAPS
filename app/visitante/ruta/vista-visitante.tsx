@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { DetalleDestino } from "@/app/components/detalle-destino";
-import { ListaPasos } from "@/app/components/pasos-ruta";
+import { ListaPasos, contarPasos } from "@/app/components/pasos-ruta";
 import { ALTURA_PANEL_MINIMO, PanelDeslizable, type EstadoPanel } from "@/app/components/panel-deslizable";
 import type { ResultadoRuta } from "@/lib/rutas/actions";
 import { puntosDeRuta } from "@/lib/rutas/mapa";
@@ -93,7 +93,7 @@ export function VistaVisitante({ nombre, destinoNombre, destinoPiso, destinoDesc
             {lugarDestino ? <p className="mt-0.5 text-sm text-slate-600">{lugarDestino}</p> : null}
             {ruta?.ok ? (
               <p className="mt-2 text-sm font-semibold text-[var(--brand-primary-active)]">
-                {ruta.pasos.length} pasos{sinEscaleras ? " · sin escaleras" : ""}
+                {contarPasos(ruta.pasos)} pasos{sinEscaleras ? " · sin escaleras" : ""}
               </p>
             ) : ruta ? (
               <p className="mt-2 text-sm font-semibold text-amber-800">No pudimos calcular tu ruta</p>

@@ -179,9 +179,9 @@ export function GrafoExplorador({ nodos, conexiones }: { nodos: NodoGrafoAdmin[]
               {ruta.ok ? (
                 <>
                   <p className="text-sm font-semibold text-slate-800">
-                    Ruta de {ruta.pasos.length} pasos · costo total {ruta.costoTotal.toFixed(1)}
+                    Ruta de {ruta.pasos.length} nodos · costo total {ruta.costoTotal.toFixed(1)}
                   </p>
-                  <ListaPasos pasos={ruta.pasos} />
+                  <ListaPasos pasos={ruta.pasos} agrupar={false} />
                 </>
               ) : (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
