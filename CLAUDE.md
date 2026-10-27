@@ -29,8 +29,9 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 - **Migraciones:** nunca editar una migración ya aplicada. Todo cambio de esquema va en
   un archivo nuevo `supabase/migrations/NNNN_nombre.sql`.
-- **Estado de migraciones:** `0001` a `0009` están aplicadas en Supabase. Actualizar
-  esta línea al agregar una nueva.
+- **Estado de migraciones:** `0001` a `0009` están aplicadas en Supabase. `0010`
+  (descripción y foto de destinos + bucket público `destinos`) está creada; actualizar
+  esta línea cuando se aplique y al agregar una nueva.
 - **Service role:** `utils/supabase/service.ts` ignora RLS. Solo se importa desde
   archivos `"use server"` (hoy `lib/rutas/actions.ts`), y cada acción valida sesión o
   token antes de usarlo. `SUPABASE_SERVICE_ROLE_KEY` nunca lleva prefijo `NEXT_PUBLIC_`.
@@ -87,6 +88,19 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 - `app/admin/components/location-picker.tsx`: selector de coordenadas con Leaflet.
 - `app/admin/components/path-drawer.tsx`: trazador de pasillos.
+- Vistas de alumno y visitante: mapa Leaflet a pantalla completa (`h-dvh`) + barra flotante
+  + `app/components/panel-deslizable.tsx`. Móvil: panel inferior con 3 alturas. Escritorio
+  (`md`, 768 px; hook `use-escritorio.ts`): barra y panel son tarjetas flotantes a la
+  izquierda (368 px) y el mapa deja libre esa columna al encuadrar la ruta
+  (`margenIzquierdo`/`margenInferior`/`margenSuperior` de `mapa-leaflet-ruta.tsx`).
+  El alumno no tiene header: "Cerrar sesión" está en `usuario/dashboard/menu-cuenta.tsx`.
+  `LIMITES_CAMPUS` (`mapa-base.ts`) limita el desplazamiento y el zoom mínimo; al llegar
+  el SVG, usar sus mismas esquinas.
+- Fotos de destinos: bucket público `destinos` (solo el admin escribe, RLS en
+  `storage.objects`). En `nodos.foto_path` solo va el nombre `<uuid>.jpg`; la URL se arma
+  con `urlFotoDestino()` (`lib/fotos.ts`). El admin las reduce y sube desde el navegador
+  (`app/admin/destinos/foto-destino-input.tsx`); la Server Action solo guarda la ruta y
+  borra la foto anterior. `DetalleDestino` (`app/components/`) la muestra con la descripción.
 - `lib/rutas/diagnostico.ts`: diagnóstico del grafo (red principal = la que tiene más
   entradas; desconectados, aislados, destinos inalcanzables, pasillos buscables,
   escaleras/elevadores sin otro piso). Lo usa `/admin/grafo`.
