@@ -5,7 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import { CENTRO_CAMPUS, crearCapaBase, escaparHtml } from "@/app/components/mapa-base";
+import { CENTRO_CAMPUS, agregarCapaBase, escaparHtml } from "@/app/components/mapa-base";
 import { ETIQUETA_TIPO } from "@/app/components/pasos-ruta";
 import type { ConexionGrafoAdmin, FocoMapa, NodoGrafoAdmin } from "./grafo-explorador";
 import { COLOR_CONEXION, COLOR_ENTRE_PISOS, COLOR_PROBLEMA, COLOR_RUTA, COLOR_TIPO } from "./colores";
@@ -44,7 +44,7 @@ export default function MapaGrafo({ nodos, conexiones, principal, problemas, pis
     if (!contenedorRef.current) return;
     const mapa = L.map(contenedorRef.current, { center: CENTRO_CAMPUS, zoom: 18 });
     mapaRef.current = mapa;
-    crearCapaBase().addTo(mapa);
+    agregarCapaBase(mapa);
     capaGrafoRef.current = L.layerGroup().addTo(mapa);
     capaRutaRef.current = L.layerGroup().addTo(mapa);
     const idTimeout = setTimeout(() => mapa.invalidateSize(), 0);

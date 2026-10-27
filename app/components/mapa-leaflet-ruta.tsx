@@ -6,7 +6,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import type { PuntoMapa, RolPunto } from "@/lib/rutas/mapa";
-import { CENTRO_CAMPUS, LIMITES_CAMPUS, crearCapaBase, escaparHtml } from "./mapa-base";
+import { CENTRO_CAMPUS, LIMITES_CAMPUS, agregarCapaBase, escaparHtml } from "./mapa-base";
 
 const COLOR_RUTA = "#ff5900";
 
@@ -87,7 +87,7 @@ export default function MapaLeafletRuta({
       maxBoundsViscosity: 1,
     });
     mapaRef.current = mapa;
-    crearCapaBase().addTo(mapa);
+    agregarCapaBase(mapa);
     capaRef.current = L.layerGroup().addTo(mapa);
     // El zoom mínimo es el que hace caber justo los límites en la pantalla:
     // depende del tamaño del contenedor, así que se recalcula al redimensionar.

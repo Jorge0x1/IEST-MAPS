@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
+import { agregarCapaBase } from "@/app/components/mapa-base";
 
 const CENTRO_CAMPUS: [number, number] = [22.323777, -97.880432];
 
@@ -47,10 +48,7 @@ export function PathDrawer({
     });
     mapaRef.current = mapa;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(mapa);
+    agregarCapaBase(mapa);
 
     capaRef.current = L.layerGroup().addTo(mapa);
 

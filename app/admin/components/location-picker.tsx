@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import L from "leaflet";
+import { agregarCapaBase } from "@/app/components/mapa-base";
 import styles from "./location-picker.module.css";
 
 // Centro aproximado del campus, mientras no tengamos el mapa/SVG definitivo.
@@ -85,10 +86,7 @@ export function LocationPicker({
     });
     mapaRef.current = mapa;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(mapa);
+    agregarCapaBase(mapa);
 
     if (puntoActual) {
       marcadorRef.current = L.marker(puntoActual, { icon: iconoPredeterminado }).addTo(mapa);

@@ -29,7 +29,7 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 - **Migraciones:** nunca editar una migración ya aplicada. Todo cambio de esquema va en
   un archivo nuevo `supabase/migrations/NNNN_nombre.sql`.
-- **Estado de migraciones:** `0001` a `0010` están aplicadas en Supabase. `0010`
+- **Estado de migraciones:** `0001` a `0009` están aplicadas en Supabase. `0010`
   (descripción y foto de destinos + bucket público `destinos`) está creada; actualizar
   esta línea cuando se aplique y al agregar una nueva.
 - **Service role:** `utils/supabase/service.ts` ignora RLS. Solo se importa desde
@@ -52,10 +52,11 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
   Sign-ins). Vigencia 12 h.
 - **Mapas:** Leaflet (NO MapLibre). Tiles de OpenStreetMap para herramientas del admin
   y, TEMPORALMENTE, como "mapa de prueba" de la ruta en alumno y visitante
-  (`app/components/mapa-base.ts`, función `crearCapaBase`, compartida por todos los mapas de
-  rutas y el mapa del grafo). Plan: cargar nodos
-  con coordenadas reales y sustituir la capa base por el SVG del campus con
-  `L.imageOverlay`. No usar tiles de OSM en producción.
+  (`app/components/mapa-base.ts`, función `agregarCapaBase(mapa)`, compartida por todos los
+  mapas: rutas, grafo, selector de coordenadas y trazador de pasillos). Encima de los tiles
+  va el plano de la planta baja (`public/mapas/planta-baja.svg`) con `L.imageOverlay`,
+  calibrado con 4 puntos de control (ver `docs/CALIBRACION_PLANO.md`). Plan: completar
+  los planos y quitar los tiles de OSM. No usar tiles de OSM en producción.
 - **Grafo:** tablas `nodos` y `conexiones` en Supabase, administrables sin desplegar.
   Escaleras/elevadores conectan nodos entre pisos. No hay restricción de mismo
   edificio/piso en una conexión.
@@ -94,8 +95,9 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
   izquierda (368 px) y el mapa deja libre esa columna al encuadrar la ruta
   (`margenIzquierdo`/`margenInferior`/`margenSuperior` de `mapa-leaflet-ruta.tsx`).
   El alumno no tiene header: "Cerrar sesión" está en `usuario/dashboard/menu-cuenta.tsx`.
-  `LIMITES_CAMPUS` (`mapa-base.ts`) limita el desplazamiento y el zoom mínimo; al llegar
-  el SVG, usar sus mismas esquinas.
+  `LIMITES_CAMPUS` (`mapa-base.ts`) limita el desplazamiento y el zoom mínimo; se deriva
+  de los límites del plano (`PLANTA_BAJA.limites`) más ~45 m de margen. `scripts/preparar-plano.py`
+  limpia el SVG que sale de AutoCAD/pdftocairo y calcula esos límites.
 - Fotos de destinos: bucket público `destinos` (solo el admin escribe, RLS en
   `storage.objects`). En `nodos.foto_path` solo va el nombre `<uuid>.jpg`; la URL se arma
   con `urlFotoDestino()` (`lib/fotos.ts`). El admin las reduce y sube desde el navegador
