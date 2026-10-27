@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import type { PuntoMapa, RolPunto } from "@/lib/rutas/mapa";
-import { CENTRO_CAMPUS, LIMITES_CAMPUS, agregarCapaBase, escaparHtml, etiquetaPiso, type CapaBase } from "./mapa-base";
+import { CENTRO_CAMPUS, LIMITES_CAMPUS, agregarCapaBase, escaparHtml, etiquetaPiso, PISO_PLANTA_BAJA, type CapaBase } from "./mapa-base";
 
 const COLOR_RUTA = "#ff5900";
 
@@ -74,7 +74,7 @@ export default function MapaLeafletRuta({
   const pisos = useMemo(() => [...new Set(puntos.map((p) => p.piso))], [puntos]);
   const [elegido, setElegido] = useState<{ puntos: PuntoMapa[]; piso: number } | null>(null);
   const pisoActivo =
-    elegido && elegido.puntos === puntos && pisos.includes(elegido.piso) ? elegido.piso : (pisos[0] ?? 0);
+    elegido && elegido.puntos === puntos && pisos.includes(elegido.piso) ? elegido.piso : (pisos[0] ?? PISO_PLANTA_BAJA);
   // Los márgenes se leen al encuadrar, pero cambiarlos no debe re-encuadrar.
   const margenesRef = useRef({ margenInferior, margenSuperior, margenIzquierdo });
   // Se declara antes que el efecto de la ruta para que ya esté actualizado.

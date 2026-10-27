@@ -5,7 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import { CENTRO_CAMPUS, agregarCapaBase, escaparHtml, type CapaBase } from "@/app/components/mapa-base";
+import { CENTRO_CAMPUS, agregarCapaBase, escaparHtml, PISO_PLANTA_BAJA, type CapaBase } from "@/app/components/mapa-base";
 import { ETIQUETA_TIPO } from "@/app/components/pasos-ruta";
 import type { ConexionGrafoAdmin, FocoMapa, NodoGrafoAdmin } from "./grafo-explorador";
 import { COLOR_CONEXION, COLOR_ENTRE_PISOS, COLOR_PROBLEMA, COLOR_RUTA, COLOR_TIPO } from "./colores";
@@ -46,7 +46,7 @@ export default function MapaGrafo({ nodos, conexiones, principal, problemas, pis
     if (!contenedorRef.current) return;
     const mapa = L.map(contenedorRef.current, { center: CENTRO_CAMPUS, zoom: 18 });
     mapaRef.current = mapa;
-    capaBaseRef.current = agregarCapaBase(mapa, pisoRef.current ?? 0);
+    capaBaseRef.current = agregarCapaBase(mapa, pisoRef.current ?? PISO_PLANTA_BAJA);
     capaGrafoRef.current = L.layerGroup().addTo(mapa);
     capaRutaRef.current = L.layerGroup().addTo(mapa);
     const idTimeout = setTimeout(() => mapa.invalidateSize(), 0);
@@ -60,10 +60,10 @@ export default function MapaGrafo({ nodos, conexiones, principal, problemas, pis
     };
   }, []);
 
-  // El plano visible sigue al filtro de piso ("todos" muestra la planta baja).
+  // El plano visible sigue al filtro de piso ("todos" muestra el piso 1, la planta baja).
   useEffect(() => {
     pisoRef.current = piso;
-    capaBaseRef.current?.cambiarPiso(piso ?? 0);
+    capaBaseRef.current?.cambiarPiso(piso ?? PISO_PLANTA_BAJA);
   }, [piso]);
 
   // Nodos y conexiones.

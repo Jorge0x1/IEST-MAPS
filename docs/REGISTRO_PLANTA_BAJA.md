@@ -10,8 +10,8 @@ sueltos (Capilla y Biblioteca) y 3 baños; unos 55 destinos en total.
 
 ## 0. Antes de empezar (una sola vez)
 
-- [ ] **Convención de pisos.** Este plano es la planta baja → `piso 0`. (La entrada
-      principal ya está en piso 0.) Un salón de planta baja es piso 0 aunque su número
+- [ ] **Convención de pisos.** Este plano es la planta baja → `piso 1`. (La entrada
+      principal debe estar en piso 1.) Un salón de planta baja es piso 1 aunque su número
       empiece con otro dígito: el primer dígito es el **edificio**, no el piso.
 - [ ] **Datos de prueba.** Revisar `/admin/destinos` y editar o borrar los nodos de
       prueba (p. ej. "Salon 604" en piso 1, "Cancha multiusos") para no duplicar.

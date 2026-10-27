@@ -37,16 +37,18 @@ export const LIMITES_CAMPUS: Limites = [
   [PLANTA_BAJA.limites[1][0] + MARGEN_LIMITES, PLANTA_BAJA.limites[1][1] + MARGEN_LIMITES],
 ];
 
-// Planos por piso. La clave es `nodos.piso` (planta baja = 0). Los planos de todos
-// los pisos salen del mismo marco de AutoCAD (mismas 4 esquinas A-D), así que
-// comparten `PLANTA_BAJA.limites` y no necesitan calibración propia. Los PDF se
-// llaman PISO2/3/4 (segunda, tercera y cuarta planta) = piso 1, 2 y 3 en la base;
-// si la convención cambia, basta con mover las claves de esta tabla.
+// Planos por piso. La clave es `nodos.piso` (planta baja = piso 1). Los planos de
+// todos los pisos salen del mismo marco de AutoCAD (mismas 4 esquinas A-D), así que
+// comparten `PLANTA_BAJA.limites` y no necesitan calibración propia. Los archivos
+// se llaman como el piso: piso-2.svg = piso 2, etc. (la planta baja es
+// planta-baja.svg). Si la convención cambia, basta con mover las claves de la tabla.
+export const PISO_PLANTA_BAJA = 1;
+
 export const PLANOS_POR_PISO: Record<number, { url: string; etiqueta: string }> = {
-  0: { url: PLANTA_BAJA.url, etiqueta: "Planta baja" },
-  1: { url: "/mapas/piso-2.svg", etiqueta: "Piso 1" },
-  2: { url: "/mapas/piso-3.svg", etiqueta: "Piso 2" },
-  3: { url: "/mapas/piso-4.svg", etiqueta: "Piso 3" },
+  1: { url: PLANTA_BAJA.url, etiqueta: "Piso 1" },
+  2: { url: "/mapas/piso-2.svg", etiqueta: "Piso 2" },
+  3: { url: "/mapas/piso-3.svg", etiqueta: "Piso 3" },
+  4: { url: "/mapas/piso-4.svg", etiqueta: "Piso 4" },
 };
 
 // Texto corto de un piso para botones y etiquetas.
@@ -61,12 +63,12 @@ export type CapaBase = {
   cambiarPiso: (piso: number | null) => void;
 };
 
-// Agrega al mapa los tiles de OSM y el plano del piso inicial (planta baja por
-// defecto). El plano va en un panel propio entre los tiles (200) y las capas
+// Agrega al mapa los tiles de OSM y el plano del piso inicial (piso 1, la planta
+// baja, por defecto). El plano va en un panel propio entre los tiles (200) y las capas
 // vectoriales (400): así las rutas, los nodos y los marcadores quedan siempre por
 // encima, y los clics lo atraviesan. Quien no necesite cambiar de piso puede
 // ignorar el valor que devuelve.
-export function agregarCapaBase(mapa: L.Map, pisoInicial: number | null = 0): CapaBase {
+export function agregarCapaBase(mapa: L.Map, pisoInicial: number | null = PISO_PLANTA_BAJA): CapaBase {
   mapa.createPane("plano").style.zIndex = "250";
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
