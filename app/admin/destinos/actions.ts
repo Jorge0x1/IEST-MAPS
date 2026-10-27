@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { BUCKET_DESTINOS, RE_FOTO_DESTINO } from "@/lib/fotos";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 
@@ -21,7 +22,18 @@ type DatosDestino = {
   lat: number | null;
   lng: number | null;
   buscable: boolean;
+  descripcion: string | null;
+  foto_path: string | null;
 };
+
+const MAX_DESCRIPCION = 500;
+
+// Borra una foto del bucket. Si falla no se interrumpe nada: lo peor es un
+// archivo huérfano en Storage, y se deja registro para limpiarlo a mano.
+async function borrarFoto(supabase: Awaited<ReturnType<typeof createClient>>, ruta: string) {
+  const { error } = await supabase.storage.from(BUCKET_DESTINOS).remove([ruta]);
+  if (error) console.error("[destinos] No se pudo borrar la foto", ruta, error.message);
+}
 
 function leerEntero(valor: FormDataEntryValue | null) {
   const texto = String(valor ?? "").trim();
@@ -72,6 +84,14 @@ function validarDestino(formData: FormData): { ok: true; data: DatosDestino } | 
   if (nombresAlternativos.some((alias) => alias.length > 100) || nombresAlternativos.length > 20) {
     return { ok: false, error: "Agrega como máximo 20 alias de hasta 100 caracteres." };
   }
+  const descripcion = String(formData.get("descripcion") ?? "").trim();
+  if (descripcion.length > MAX_DESCRIPCION) {
+    return { ok: false, error: `La descripción puede tener como máximo ${MAX_DESCRIPCION} caracteres.` };
+  }
+  const fotoPath = String(formData.get("foto_path") ?? "").trim();
+  if (fotoPath && !RE_FOTO_DESTINO.test(fotoPath)) {
+    return { ok: false, error: "La foto no es válida. Vuelve a subirla." };
+  }
 
   return {
     ok: true,
@@ -84,6 +104,8 @@ function validarDestino(formData: FormData): { ok: true; data: DatosDestino } | 
       lat,
       lng,
       buscable: formData.get("buscable") === "on",
+      descripcion: descripcion || null,
+      foto_path: fotoPath || null,
     },
   };
 }
@@ -124,8 +146,14 @@ export async function actualizarDestino(
   }
 
   const supabase = await createClient();
+  const { data: previo } = await supabase.from("nodos").select("foto_path").eq("id", destinoId).maybeSingle();
   const { error } = await supabase.from("nodos").update(validacion.data).eq("id", destinoId);
   if (error) return { ok: false, mensaje: "No se pudieron guardar los cambios." };
+
+  // Si la foto cambió o se quitó, la anterior ya no se usa en ningún lado.
+  if (previo?.foto_path && previo.foto_path !== validacion.data.foto_path) {
+    await borrarFoto(supabase, previo.foto_path);
+  }
 
   revalidatePath("/admin/destinos");
   revalidatePath("/admin/edificios");
@@ -145,8 +173,10 @@ export async function eliminarDestino(destinoId: string): Promise<EstadoDestino>
     return { ok: false, mensaje: `No se puede eliminar: tiene ${count} conexión(es).` };
   }
 
+  const { data: previo } = await supabase.from("nodos").select("foto_path").eq("id", destinoId).maybeSingle();
   const { error } = await supabase.from("nodos").delete().eq("id", destinoId);
   if (error) return { ok: false, mensaje: "No se puede eliminar porque el nodo está en uso." };
+  if (previo?.foto_path) await borrarFoto(supabase, previo.foto_path);
 
   revalidatePath("/admin/destinos");
   revalidatePath("/admin/edificios");

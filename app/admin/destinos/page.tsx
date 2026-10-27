@@ -35,7 +35,7 @@ export default async function DestinosPage({ searchParams }: { searchParams: Pro
   const [destinosResult, edificiosResult] = await Promise.all([
     supabase
       .from("nodos")
-      .select("id, nombre, tipo, nombres_alternativos, edificio_id, piso, lat, lng, buscable, edificios(nombre)")
+      .select("id, nombre, tipo, nombres_alternativos, edificio_id, piso, lat, lng, buscable, descripcion, foto_path, edificios(nombre)")
       .order("piso")
       .order("nombre"),
     supabase.from("edificios").select("id, nombre").order("nombre"),

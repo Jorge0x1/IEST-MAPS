@@ -43,6 +43,10 @@ export type PasoRutaDetallado = {
   // Coordenadas del nodo para dibujar la ruta; null si el nodo no tiene (0007).
   lat: number | null;
   lng: number | null;
+  // Descripción y foto del nodo (0010); la vista del visitante las muestra para
+  // el último paso, que es su destino.
+  descripcion: string | null;
+  fotoPath: string | null;
   costoAcumulado: number;
   cambioPiso: CambioPiso | null;
 };
@@ -61,7 +65,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // para no truncar el grafo en silencio si llega a crecer.
 const TAMANO_PAGINA = 1000;
 
-type FilaNodo = NodoGrafo & { nombre: string };
+type FilaNodo = NodoGrafo & { nombre: string; descripcion: string | null; foto_path: string | null };
 type FilaEdificio = { id: string; nombre: string };
 
 async function leerTodo<T>(
@@ -122,7 +126,7 @@ async function calcularRutaSinValidar(
       leerTodo<FilaNodo>((desde, hasta) =>
         supabase
           .from("nodos")
-          .select("id, nombre, tipo, piso, edificio_id, lat, lng")
+          .select("id, nombre, tipo, piso, edificio_id, lat, lng, descripcion, foto_path")
           .order("id")
           .range(desde, hasta),
       ),
@@ -166,6 +170,8 @@ async function calcularRutaSinValidar(
       edificioNombre: nodo.edificio_id ? (nombreEdificio.get(nodo.edificio_id) ?? null) : null,
       lat: nodo.lat,
       lng: nodo.lng,
+      descripcion: nodo.descripcion,
+      fotoPath: nodo.foto_path,
       costoAcumulado: paso.costoAcumulado,
       cambioPiso: anterior ? detectarCambioPiso(anterior, nodo) : null,
     };

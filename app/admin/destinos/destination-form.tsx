@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { actualizarDestino, crearDestino, type EstadoDestino } from "./actions";
+import { FotoDestinoInput } from "./foto-destino-input";
 import styles from "./destinos.module.css";
 
 const LocationPicker = dynamic(
@@ -30,6 +31,8 @@ export type DestinoInicial = {
   lat: number | null;
   lng: number | null;
   buscable: boolean;
+  descripcion: string | null;
+  foto_path: string | null;
 };
 
 const tipos = [
@@ -43,6 +46,7 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
   const [estado, formAction, pendiente] = useActionState(action, estadoInicial);
   const formRef = useRef<HTMLFormElement>(null);
   const [mapResetVersion, setMapResetVersion] = useState(0);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   useEffect(() => {
     if (estado.ok && !destino) {
@@ -123,6 +127,22 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
         <span className={styles.fieldHelp}>Separa cada nombre alternativo con una coma.</span>
       </label>
 
+      <label className={styles.field}>
+        Descripción
+        <textarea
+          name="descripcion"
+          rows={3}
+          maxLength={500}
+          defaultValue={destino?.descripcion ?? ""}
+          placeholder="Ej. Segundo salón a la derecha, junto a los baños. Puerta azul."
+          className={styles.control}
+        />
+        <span className={styles.fieldHelp}>Opcional, hasta 500 caracteres. La ve el alumno junto a la foto.</span>
+      </label>
+
+      {/* `key` reinicia el campo al limpiar el formulario después de crear un destino. */}
+      <FotoDestinoInput key={mapResetVersion} valorInicial={destino?.foto_path ?? null} onSubiendoChange={setSubiendoFoto} />
+
       <div className={styles.locationSection}>
         <div className={styles.locationPickerShell}>
           <LocationPicker
@@ -163,8 +183,8 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
         ) : (
           <span className={styles.formSpacer} />
         )}
-        <button disabled={pendiente || edificios.length === 0} className={styles.primaryButton}>
-          {pendiente ? "Guardando…" : destino ? "Guardar cambios" : "Crear destino"}
+        <button disabled={pendiente || subiendoFoto || edificios.length === 0} className={styles.primaryButton}>
+          {pendiente ? "Guardando…" : subiendoFoto ? "Subiendo foto…" : destino ? "Guardar cambios" : "Crear destino"}
         </button>
       </div>
     </form>
