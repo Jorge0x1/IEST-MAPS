@@ -5,7 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import { CENTRO_CAMPUS, agregarCapaBase, escaparHtml } from "@/app/components/mapa-base";
+import { CENTRO_CAMPUS, agregarCapaBase, escaparHtml, type CapaBase } from "@/app/components/mapa-base";
 import { ETIQUETA_TIPO } from "@/app/components/pasos-ruta";
 import type { ConexionGrafoAdmin, FocoMapa, NodoGrafoAdmin } from "./grafo-explorador";
 import { COLOR_CONEXION, COLOR_ENTRE_PISOS, COLOR_PROBLEMA, COLOR_RUTA, COLOR_TIPO } from "./colores";
@@ -30,6 +30,8 @@ const tieneCoords = (n: NodoGrafoAdmin): n is NodoGrafoAdmin & { lat: number; ln
 export default function MapaGrafo({ nodos, conexiones, principal, problemas, piso, rutaIds, origenId, destinoId, foco, onElegirNodo }: Props) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
+  const capaBaseRef = useRef<CapaBase | null>(null);
+  const pisoRef = useRef(piso);
   const capaGrafoRef = useRef<L.LayerGroup | null>(null);
   const capaRutaRef = useRef<L.LayerGroup | null>(null);
   const marcadoresRef = useRef(new Map<string, L.CircleMarker>());
@@ -44,7 +46,7 @@ export default function MapaGrafo({ nodos, conexiones, principal, problemas, pis
     if (!contenedorRef.current) return;
     const mapa = L.map(contenedorRef.current, { center: CENTRO_CAMPUS, zoom: 18 });
     mapaRef.current = mapa;
-    agregarCapaBase(mapa);
+    capaBaseRef.current = agregarCapaBase(mapa, pisoRef.current ?? 0);
     capaGrafoRef.current = L.layerGroup().addTo(mapa);
     capaRutaRef.current = L.layerGroup().addTo(mapa);
     const idTimeout = setTimeout(() => mapa.invalidateSize(), 0);
@@ -52,10 +54,17 @@ export default function MapaGrafo({ nodos, conexiones, principal, problemas, pis
       clearTimeout(idTimeout);
       mapa.remove();
       mapaRef.current = null;
+      capaBaseRef.current = null;
       capaGrafoRef.current = null;
       capaRutaRef.current = null;
     };
   }, []);
+
+  // El plano visible sigue al filtro de piso ("todos" muestra la planta baja).
+  useEffect(() => {
+    pisoRef.current = piso;
+    capaBaseRef.current?.cambiarPiso(piso ?? 0);
+  }, [piso]);
 
   // Nodos y conexiones.
   useEffect(() => {

@@ -3,10 +3,10 @@
 // Mapa Leaflet con la ruta dibujada. Usa `window`, así que solo se importa
 // mediante next/dynamic con ssr: false (ver mapa-ruta.tsx).
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import type { PuntoMapa, RolPunto } from "@/lib/rutas/mapa";
-import { CENTRO_CAMPUS, LIMITES_CAMPUS, agregarCapaBase, escaparHtml } from "./mapa-base";
+import { CENTRO_CAMPUS, LIMITES_CAMPUS, agregarCapaBase, escaparHtml, etiquetaPiso, type CapaBase } from "./mapa-base";
 
 const COLOR_RUTA = "#ff5900";
 
@@ -65,6 +65,16 @@ export default function MapaLeafletRuta({
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
   const capaRef = useRef<L.LayerGroup | null>(null);
+  const capaBaseRef = useRef<CapaBase | null>(null);
+
+  // Pisos por los que pasa la ruta (en orden de recorrido). El mapa muestra un
+  // piso a la vez: su plano y solo los puntos de la ruta que caen en él. La
+  // elección se guarda junto a los puntos a los que pertenece: al cambiar de ruta
+  // vuelve sola al primer piso, sin efectos que reinicien el estado.
+  const pisos = useMemo(() => [...new Set(puntos.map((p) => p.piso))], [puntos]);
+  const [elegido, setElegido] = useState<{ puntos: PuntoMapa[]; piso: number } | null>(null);
+  const pisoActivo =
+    elegido && elegido.puntos === puntos && pisos.includes(elegido.piso) ? elegido.piso : (pisos[0] ?? 0);
   // Los márgenes se leen al encuadrar, pero cambiarlos no debe re-encuadrar.
   const margenesRef = useRef({ margenInferior, margenSuperior, margenIzquierdo });
   // Se declara antes que el efecto de la ruta para que ya esté actualizado.
@@ -87,7 +97,7 @@ export default function MapaLeafletRuta({
       maxBoundsViscosity: 1,
     });
     mapaRef.current = mapa;
-    agregarCapaBase(mapa);
+    capaBaseRef.current = agregarCapaBase(mapa, null);
     capaRef.current = L.layerGroup().addTo(mapa);
     // El zoom mínimo es el que hace caber justo los límites en la pantalla:
     // depende del tamaño del contenedor, así que se recalcula al redimensionar.
@@ -107,8 +117,50 @@ export default function MapaLeafletRuta({
       mapa.remove();
       mapaRef.current = null;
       capaRef.current = null;
+      capaBaseRef.current = null;
     };
   }, []);
+
+  // El plano visible es el del piso activo. Va antes del efecto de la ruta para
+  // que el mapa ya tenga el plano correcto cuando se encuadra.
+  useEffect(() => {
+    capaBaseRef.current?.cambiarPiso(pisoActivo);
+  }, [pisoActivo]);
+
+  // Selector de piso (solo si la ruta pasa por más de uno). Es un control de
+  // Leaflet arriba a la derecha, bajo la barra de búsqueda si la hay.
+  useEffect(() => {
+    const mapa = mapaRef.current;
+    if (!mapa || pisos.length < 2) return;
+    const control = new L.Control({ position: "topright" });
+    control.onAdd = () => {
+      const caja = L.DomUtil.create("div", "");
+      caja.setAttribute("role", "group");
+      caja.setAttribute("aria-label", "Piso del mapa");
+      caja.style.cssText =
+        `display:flex;flex-direction:column;gap:4px;margin-top:${margenesRef.current.margenSuperior + 10}px;margin-right:10px;`;
+      for (const piso of pisos) {
+        const boton = L.DomUtil.create("button", "", caja);
+        boton.type = "button";
+        boton.textContent = etiquetaPiso(piso);
+        const activo = piso === pisoActivo;
+        boton.setAttribute("aria-pressed", String(activo));
+        boton.style.cssText =
+          "cursor:pointer;padding:6px 10px;border-radius:8px;font:700 12px/1 sans-serif;" +
+          "box-shadow:0 1px 4px rgb(0 0 0 / .3);" +
+          (activo
+            ? "background:#0369a1;color:#fff;border:2px solid #0369a1;"
+            : "background:#fff;color:#2f3033;border:2px solid #ffffff;");
+        L.DomEvent.on(boton, "click", () => setElegido({ puntos, piso }));
+      }
+      L.DomEvent.disableClickPropagation(caja);
+      return caja;
+    };
+    control.addTo(mapa);
+    return () => {
+      control.remove();
+    };
+  }, [pisos, pisoActivo, puntos]);
 
   useEffect(() => {
     const mapa = mapaRef.current;
@@ -125,19 +177,21 @@ export default function MapaLeafletRuta({
     const capa = capaRef.current;
     if (!mapa || !capa) return;
     capa.clearLayers();
-    if (puntos.length === 0) {
+    // Solo se dibuja el tramo de la ruta que está en el piso activo.
+    const visibles = puntos.filter((p) => p.piso === pisoActivo);
+    if (visibles.length === 0) {
       mapa.setView(CENTRO_CAMPUS, 18);
       return;
     }
 
-    const coordenadas = puntos.map((p) => L.latLng(p.lat, p.lng));
+    const coordenadas = visibles.map((p) => L.latLng(p.lat, p.lng));
     if (coordenadas.length > 1) {
       L.polyline(coordenadas, { color: COLOR_RUTA, weight: 5, opacity: 0.85 }).addTo(capa);
     }
     // Solo llevan marcador los puntos numerados; los demás son vértices de la
     // línea (nodos intermedios de un tramo de pasillo). Inicio y destino van al
     // final para que queden encima de los pasos.
-    const orden = puntos.filter((p) => p.numero !== null).sort((a, b) => Number(a.rol === "inicio" || a.rol === "destino") - Number(b.rol === "inicio" || b.rol === "destino"));
+    const orden = visibles.filter((p) => p.numero !== null).sort((a, b) => Number(a.rol === "inicio" || a.rol === "destino") - Number(b.rol === "inicio" || b.rol === "destino"));
     for (const punto of orden) {
       L.marker([punto.lat, punto.lng], { icon: icono(punto), keyboard: false })
         .bindTooltip(`${punto.numero}. ${escaparHtml(punto.nombre)} · ${ETIQUETA_ROL[punto.rol]} · Piso ${punto.piso}`, { direction: "top", offset: [0, -12] })
@@ -154,7 +208,7 @@ export default function MapaLeafletRuta({
         maxZoom: 20,
       });
     }
-  }, [puntos]);
+  }, [puntos, pisoActivo]);
 
   return <div ref={contenedorRef} className={className} aria-label="Mapa de la ruta" role="img" />;
 }

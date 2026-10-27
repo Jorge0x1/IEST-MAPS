@@ -37,10 +37,36 @@ export const LIMITES_CAMPUS: Limites = [
   [PLANTA_BAJA.limites[1][0] + MARGEN_LIMITES, PLANTA_BAJA.limites[1][1] + MARGEN_LIMITES],
 ];
 
-// Agrega al mapa los tiles de OSM y el plano. El plano va en un panel propio
-// entre los tiles (200) y las capas vectoriales (400): así las rutas, los nodos
-// y los marcadores quedan siempre por encima, y los clics lo atraviesan.
-export function agregarCapaBase(mapa: L.Map): void {
+// Planos por piso. La clave es `nodos.piso` (planta baja = 0). Los planos de todos
+// los pisos salen del mismo marco de AutoCAD (mismas 4 esquinas A-D), así que
+// comparten `PLANTA_BAJA.limites` y no necesitan calibración propia. Los PDF se
+// llaman PISO2/3/4 (segunda, tercera y cuarta planta) = piso 1, 2 y 3 en la base;
+// si la convención cambia, basta con mover las claves de esta tabla.
+export const PLANOS_POR_PISO: Record<number, { url: string; etiqueta: string }> = {
+  0: { url: PLANTA_BAJA.url, etiqueta: "Planta baja" },
+  1: { url: "/mapas/piso-2.svg", etiqueta: "Piso 1" },
+  2: { url: "/mapas/piso-3.svg", etiqueta: "Piso 2" },
+  3: { url: "/mapas/piso-4.svg", etiqueta: "Piso 3" },
+};
+
+// Texto corto de un piso para botones y etiquetas.
+export function etiquetaPiso(piso: number): string {
+  return PLANOS_POR_PISO[piso]?.etiqueta ?? `Piso ${piso}`;
+}
+
+export type CapaBase = {
+  // Muestra el plano del piso indicado (y quita el anterior). `null` o un piso sin
+  // plano dejan solo el mapa base. Cada plano se crea una vez y luego solo se
+  // agrega o quita del mapa.
+  cambiarPiso: (piso: number | null) => void;
+};
+
+// Agrega al mapa los tiles de OSM y el plano del piso inicial (planta baja por
+// defecto). El plano va en un panel propio entre los tiles (200) y las capas
+// vectoriales (400): así las rutas, los nodos y los marcadores quedan siempre por
+// encima, y los clics lo atraviesan. Quien no necesite cambiar de piso puede
+// ignorar el valor que devuelve.
+export function agregarCapaBase(mapa: L.Map, pisoInicial: number | null = 0): CapaBase {
   mapa.createPane("plano").style.zIndex = "250";
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -49,12 +75,34 @@ export function agregarCapaBase(mapa: L.Map): void {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(mapa);
 
-  L.imageOverlay(PLANTA_BAJA.url, PLANTA_BAJA.limites, {
-    pane: "plano",
-    opacity: PLANTA_BAJA.opacidad,
-    interactive: false,
-    alt: "",
-  }).addTo(mapa);
+  const planos = new Map<number, L.ImageOverlay>();
+  let visible: L.ImageOverlay | null = null;
+
+  const planoDe = (piso: number | null): L.ImageOverlay | null => {
+    if (piso === null || !PLANOS_POR_PISO[piso]) return null;
+    let plano = planos.get(piso);
+    if (!plano) {
+      plano = L.imageOverlay(PLANOS_POR_PISO[piso].url, PLANTA_BAJA.limites, {
+        pane: "plano",
+        opacity: PLANTA_BAJA.opacidad,
+        interactive: false,
+        alt: "",
+      });
+      planos.set(piso, plano);
+    }
+    return plano;
+  };
+
+  const cambiarPiso = (piso: number | null) => {
+    const siguiente = planoDe(piso);
+    if (siguiente === visible) return;
+    visible?.remove();
+    siguiente?.addTo(mapa);
+    visible = siguiente;
+  };
+
+  cambiarPiso(pisoInicial);
+  return { cambiarPiso };
 }
 
 // Leaflet interpreta como HTML el texto de tooltips y popups: todo dato que

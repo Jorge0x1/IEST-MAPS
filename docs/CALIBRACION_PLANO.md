@@ -49,9 +49,15 @@ límites.
 - El PDF exportado de AutoCAD trae los rellenos como mallas de triángulos; en el
   navegador se ven costuras finas. El script engruesa el contorno de cada relleno
   para taparlas. Si AutoCAD exporta los rellenos como regiones sólidas, desaparecen.
-- Hoy solo hay planta baja: se muestra en todos los mapas sin importar el piso del
-  nodo. Cuando existan otros pisos, `agregarCapaBase()` debe recibir el piso y elegir
-  el plano que corresponde.
+- Planos por piso (`PLANOS_POR_PISO` en `mapa-base.ts`, clave = `nodos.piso`):
+  planta baja = 0 (`planta-baja.svg`), `piso-2.svg` = piso 1, `piso-3.svg` = piso 2,
+  `piso-4.svg` = piso 3. Los PDF de los pisos 2, 3 y 4 salen del mismo marco de
+  AutoCAD que la planta baja (mismas esquinas A-D), por eso comparten
+  `PLANTA_BAJA.limites` y no se recalibran. Se generan igual que la planta baja:
+  `python scripts/preparar-plano.py pisoN.svg public/mapas/piso-N.svg`.
+- `agregarCapaBase(mapa, piso)` devuelve `{ cambiarPiso }`. El mapa de rutas muestra
+  un piso a la vez (selector arriba a la derecha cuando la ruta pasa por más de uno);
+  el mapa del grafo sigue el filtro de piso del admin ("todos" = planta baja).
 - `PLANTA_BAJA.opacidad` está en 1. Al calibrar un plano nuevo conviene bajarlo
   temporalmente (p. ej. 0.7) para comparar con las calles de OSM, y volver a 1.
 - Paleta: AutoCAD usa colores oscuros pensados para imprimir; `PALETA` en
