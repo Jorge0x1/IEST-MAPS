@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
@@ -20,7 +21,9 @@ export function rutaParaRol(rol: RolUsuario) {
   return dashboardPorRol[rol];
 }
 
-export async function obtenerSesionConPerfil() {
+// `cache` evita repetir la consulta del perfil cuando el layout y la página de
+// una misma petición piden la sesión.
+export const obtenerSesionConPerfil = cache(async () => {
   const supabase = await createClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
@@ -49,7 +52,7 @@ export async function obtenerSesionConPerfil() {
       activo: boolean;
     },
   };
-}
+});
 
 export async function requerirRol(rolPermitido: RolUsuario) {
   const sesion = await obtenerSesionConPerfil();

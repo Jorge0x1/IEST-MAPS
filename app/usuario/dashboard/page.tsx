@@ -1,4 +1,6 @@
+import { urlFotoDestino } from "@/lib/fotos";
 import { createClient } from "@/utils/supabase/server";
+import { requerirRol } from "@/utils/auth";
 import { Navegador, type DestinoAlumno, type EntradaAlumno } from "./navegador";
 
 // El layout ya exige rol "alumno". Aquí solo se carga, una vez, el catálogo
@@ -13,6 +15,8 @@ type FilaNodo = {
   piso: number;
   nombres_alternativos: string[] | null;
   edificio_id: string | null;
+  descripcion: string | null;
+  foto_path: string | null;
 };
 
 // Cota explícita para no depender del límite por defecto de PostgREST. Un
@@ -21,8 +25,10 @@ type FilaNodo = {
 const MAX_NODOS = 2000;
 
 export default async function UsuarioDashboardPage() {
+  // Misma sesión que valida el layout (obtenerSesionConPerfil usa cache por petición).
+  const { profile } = await requerirRol("alumno");
   const supabase = await createClient();
-  const columnas = "id, nombre, tipo, piso, nombres_alternativos, edificio_id";
+  const columnas = "id, nombre, tipo, piso, nombres_alternativos, edificio_id, descripcion, foto_path";
 
   const [destinosRes, entradasRes, edificiosRes] = await Promise.all([
     supabase.from("nodos").select(columnas).eq("buscable", true).order("nombre").range(0, MAX_NODOS - 1),
@@ -53,6 +59,8 @@ export default async function UsuarioDashboardPage() {
     tipo: fila.tipo,
     piso: fila.piso,
     edificioNombre: edificioDe(fila),
+    descripcion: fila.descripcion,
+    fotoUrl: urlFotoDestino(fila.foto_path),
   }));
 
   const entradas: EntradaAlumno[] = ((entradasRes.data ?? []) as FilaNodo[]).map((fila) => ({
@@ -61,5 +69,5 @@ export default async function UsuarioDashboardPage() {
     edificioNombre: edificioDe(fila),
   }));
 
-  return <Navegador destinos={destinos} entradas={entradas} />;
+  return <Navegador destinos={destinos} entradas={entradas} nombreUsuario={profile.nombre ?? profile.correo ?? "Usuario"} />;
 }

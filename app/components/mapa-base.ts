@@ -10,6 +10,15 @@ import L from "leaflet";
 
 export const CENTRO_CAMPUS: [number, number] = [22.323777, -97.880432];
 
+// Límites del área navegable para alumno y visitante: [[sur, oeste], [norte, este]].
+// Por ahora es un recuadro de ~330 m alrededor del centro. Ajústalo a los bordes
+// reales del campus; cuando el SVG esté georreferenciado, usa aquí las mismas
+// esquinas que el L.imageOverlay (con un pequeño margen).
+export const LIMITES_CAMPUS: [[number, number], [number, number]] = [
+  [CENTRO_CAMPUS[0] - 0.003, CENTRO_CAMPUS[1] - 0.0032],
+  [CENTRO_CAMPUS[0] + 0.003, CENTRO_CAMPUS[1] + 0.0032],
+];
+
 export function crearCapaBase(): L.Layer {
   return L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 20,
