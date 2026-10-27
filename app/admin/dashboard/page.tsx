@@ -1,5 +1,6 @@
 import { AccessButton } from "./access-button";
 import { CreateUserForm } from "./create-user-form";
+import { PasswordUserForm } from "./password-user-form";
 import { eliminarAltaPendiente } from "./actions";
 import { RoleSelector } from "./role-selector";
 import { StatCard, StatusBadge } from "../components/admin-ui";
@@ -116,6 +117,22 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
         </div>
         <div className={styles.panelBody}>
           <CreateUserForm />
+        </div>
+      </section>
+
+      <section className={styles.panel} aria-labelledby="contrasena-title">
+        <div className={styles.panelHeader}>
+          <div className={styles.panelHeadingGroup}>
+            <p className={styles.panelKicker}>Acceso sin Google</p>
+            <h2 id="contrasena-title" className={styles.panelTitle}>Acceso con contraseña</h2>
+            <p className={styles.panelDescription}>
+              Crea una cuenta de prueba para cada rol o asigna contraseña a un usuario existente. Entra desde el login con
+              “Entrar con correo y contraseña”. El correo debe terminar en @iest.edu.mx, aunque puede ser ficticio.
+            </p>
+          </div>
+        </div>
+        <div className={styles.panelBody}>
+          <PasswordUserForm />
         </div>
       </section>
 

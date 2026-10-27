@@ -346,6 +346,79 @@
   transform: translateX(0.18rem);
 }
 
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+}
+
+.passwordForm {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.25rem;
+}
+
+.passwordForm .errorMessage {
+  margin-top: 0;
+}
+
+.passwordField {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.passwordInput {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--surface);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.passwordInput:focus-visible {
+  border-color: var(--brand-primary-active);
+  outline: 2px solid var(--brand-primary-soft);
+}
+
+.passwordButton {
+  min-height: 2.9rem;
+  cursor: pointer;
+  border: 1px solid var(--brand-primary-active);
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: var(--brand-primary-active);
+  font-size: 0.92rem;
+  font-weight: 680;
+}
+
+.passwordButton:hover:not(:disabled) {
+  background: var(--brand-primary-hover, var(--brand-primary-active));
+}
+
+.passwordButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .accessNote {
   display: flex;
   align-items: flex-start;

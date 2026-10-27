@@ -33,7 +33,8 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
   (descripción y foto de destinos + bucket público `destinos`) está creada; actualizar
   esta línea cuando se aplique y al agregar una nueva.
 - **Service role:** `utils/supabase/service.ts` ignora RLS. Solo se importa desde
-  archivos `"use server"` (hoy `lib/rutas/actions.ts`), y cada acción valida sesión o
+  archivos `"use server"` (hoy `lib/rutas/actions.ts` y `app/admin/dashboard/actions.ts`,
+  este último para la API de administración de Auth), y cada acción valida sesión o
   token antes de usarlo. `SUPABASE_SERVICE_ROLE_KEY` nunca lleva prefijo `NEXT_PUBLIC_`.
 - **Autorización siempre en el servidor:** validar rol en Server Actions/Route Handlers
   y respaldar con RLS. Nunca confiar solo en ocultar botones en la UI.
@@ -47,7 +48,12 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 - **Auth:** Supabase Auth es la única fuente. Usuarios institucionales con Google y
   correo autorizado previamente. Dar de alta un correo lo preautoriza; el perfil se
-  vincula en el primer login.
+  vincula en el primer login. Como alternativa, un administrador puede crear cuentas
+  con contraseña (cuentas de prueba por rol) o asignar contraseña a un usuario
+  existente (`guardarAccesoConContrasena`); entran con "Entrar con correo y contraseña"
+  en `/login`. Requiere el proveedor Email activo en Supabase con "Confirm email"
+  encendido (así nadie puede registrarse solo con un correo ajeno); las cuentas que
+  crea el admin ya van confirmadas. El correo sigue debiendo ser @iest.edu.mx.
 - **Visitantes:** usan token propio del QR, sin cuenta de Supabase (NO usar Anonymous
   Sign-ins). Vigencia 12 h.
 - **Mapas:** Leaflet (NO MapLibre). Tiles de OpenStreetMap para herramientas del admin

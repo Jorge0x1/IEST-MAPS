@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { iniciarSesionConGoogle } from "./actions";
+import { FormContrasena } from "./form-contrasena";
 import { obtenerSesionConPerfil, rutaParaRol } from "@/utils/auth";
 import iestMapsLogo from "@/assets/IESTMaps_Logo.png";
 import styles from "./page.module.css";
@@ -92,6 +93,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               </button>
             </form>
 
+            {/* Cuentas con contraseña asignada por un administrador. */}
+            <div className={styles.divider} role="separator">
+              <span>o entra con correo y contraseña</span>
+            </div>
+            <FormContrasena />
+
             <div id="institutional-access-note" className={styles.accessNote}>
               <span aria-hidden="true" className={styles.noteAccent} />
               <div>
@@ -101,7 +108,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </div>
 
             <p className={styles.securityNote}>
-              Serás dirigido al acceso seguro de Google para continuar.
+              Con Google serás dirigido a su acceso seguro para continuar.
             </p>
           </div>
         </section>

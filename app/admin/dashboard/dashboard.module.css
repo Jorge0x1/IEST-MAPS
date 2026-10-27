@@ -220,6 +220,10 @@
   gap: 1rem;
 }
 
+.createFormCinco {
+  grid-template-columns: minmax(9rem, 1fr) minmax(13rem, 1.3fr) minmax(9rem, 0.7fr) minmax(10rem, 1fr) auto;
+}
+
 .field {
   display: grid;
   min-width: 0;

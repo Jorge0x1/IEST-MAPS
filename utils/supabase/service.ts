@@ -1,7 +1,7 @@
 // ⚠️ CLIENTE CON SERVICE ROLE: IGNORA TODAS LAS POLÍTICAS RLS.
 //
 // Solo debe importarse desde archivos de Server Actions que tengan "use server"
-// en la primera línea (hoy: lib/rutas/actions.ts). Nunca desde un componente,
+// en la primera línea (hoy: lib/rutas/actions.ts y app/admin/dashboard/actions.ts). Nunca desde un componente,
 // una página, un layout ni nada que pueda terminar en el bundle del navegador.
 // `server-only` hace que el build falle si alguien lo importa desde el cliente.
 //

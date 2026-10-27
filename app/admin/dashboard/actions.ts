@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requerirRol, type RolUsuario } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 
 export type EstadoCambioRol = {
   ok: boolean;
@@ -88,6 +89,62 @@ export async function guardarAlta(
     ok: true,
     mensaje: existente ? "Usuario actualizado y activado." : "Correo autorizado. Esperando su primer acceso.",
   };
+}
+
+// Crea una cuenta con contraseña (p. ej. de prueba para cada rol) o asigna
+// contraseña a un usuario que ya existe, para que entre sin Google.
+//
+// Primero pasa por guardarAlta: valida correo @iest.edu.mx, nombre y rol,
+// impide cambiar el rol propio y deja el rol reservado en usuarios_autorizados,
+// de donde lo toma el trigger crear_profile_para_nuevo_usuario al crear la
+// cuenta. Después usa la API de administración de Auth, que requiere el
+// cliente service role (solo tras validar que quien llama es administrador).
+export async function guardarAccesoConContrasena(
+  estadoAnterior: EstadoCambioRol,
+  formData: FormData,
+): Promise<EstadoCambioRol> {
+  await requerirRol("administrador");
+  const contrasena = String(formData.get("contrasena") ?? "");
+  if (contrasena.length < 8 || contrasena.length > 72) {
+    return { ok: false, mensaje: "La contraseña debe tener entre 8 y 72 caracteres." };
+  }
+
+  const alta = await guardarAlta(estadoAnterior, formData);
+  if (!alta.ok) return alta;
+
+  const correo = String(formData.get("correo") ?? "").trim().toLowerCase();
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const supabase = await createClient();
+  const { data: existente } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("correo", correo)
+    .maybeSingle();
+
+  const authAdmin = createServiceClient().auth.admin;
+
+  if (existente) {
+    const { error } = await authAdmin.updateUserById(existente.id, { password: contrasena });
+    revalidatePath("/admin/dashboard");
+    if (error) {
+      return { ok: false, mensaje: `Se guardó el rol, pero no se pudo asignar la contraseña: ${error.message}` };
+    }
+    return { ok: true, mensaje: "Contraseña asignada. Ya puede entrar con correo y contraseña." };
+  }
+
+  const { error } = await authAdmin.createUser({
+    email: correo,
+    password: contrasena,
+    // La crea un administrador: no se manda correo de confirmación (los
+    // correos de prueba pueden no existir).
+    email_confirm: true,
+    user_metadata: nombre ? { full_name: nombre } : {},
+  });
+  revalidatePath("/admin/dashboard");
+  if (error) {
+    return { ok: false, mensaje: `El correo quedó autorizado, pero no se pudo crear la cuenta: ${error.message}` };
+  }
+  return { ok: true, mensaje: "Cuenta creada. Ya puede entrar con correo y contraseña." };
 }
 
 export async function cambiarRol(
