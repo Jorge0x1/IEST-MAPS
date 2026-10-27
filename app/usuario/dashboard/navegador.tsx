@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
-import { ETIQUETA_TIPO, ListaPasos } from "@/app/components/pasos-ruta";
+import { ETIQUETA_TIPO, ListaPasos, contarPasos } from "@/app/components/pasos-ruta";
 import { DetalleDestino } from "@/app/components/detalle-destino";
 import { ALTURA_PANEL_MINIMO, PanelDeslizable, type EstadoPanel } from "@/app/components/panel-deslizable";
 import { buscarDestinos } from "@/lib/busqueda";
@@ -44,10 +44,44 @@ function lugar(edificio: string | null, piso: number) {
   return [edificio, `Piso ${piso}`].filter(Boolean).join(" · ");
 }
 
+type OpcionOrigen = { id: string; nombre: string; detalle: string | null };
+type GrupoOrigen = { etiqueta: string; opciones: OpcionOrigen[] };
+
+// Puntos de partida: primero las entradas y luego el resto de los destinos
+// buscables agrupados por edificio, para poder probar rutas entre salones.
+// Cuando llegue el GPS, el origen será la posición del usuario.
+function agruparOrigenes(entradas: EntradaAlumno[], destinos: DestinoAlumno[]): GrupoOrigen[] {
+  const grupos: GrupoOrigen[] = [];
+  if (entradas.length > 0) {
+    grupos.push({
+      etiqueta: "Entradas",
+      opciones: entradas.map((e) => ({
+        id: e.id,
+        nombre: e.nombre,
+        detalle: e.edificioNombre && e.edificioNombre !== e.nombre ? e.edificioNombre : null,
+      })),
+    });
+  }
+
+  const idsEntrada = new Set(entradas.map((e) => e.id));
+  const porEdificio = new Map<string, OpcionOrigen[]>();
+  for (const d of destinos) {
+    if (idsEntrada.has(d.id)) continue;
+    const clave = d.edificioNombre ?? "Sin edificio";
+    const lista = porEdificio.get(clave) ?? [];
+    lista.push({ id: d.id, nombre: d.nombre, detalle: `Piso ${d.piso}` });
+    porEdificio.set(clave, lista);
+  }
+  const edificios = [...porEdificio.keys()].sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
+  for (const etiqueta of edificios) grupos.push({ etiqueta, opciones: porEdificio.get(etiqueta)! });
+
+  return grupos;
+}
+
 export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: DestinoAlumno[]; entradas: EntradaAlumno[]; nombreUsuario: string }) {
   const [consulta, setConsulta] = useState("");
   const [destino, setDestino] = useState<DestinoAlumno | null>(null);
-  const [entradaId, setEntradaId] = useState(entradas[0]?.id ?? "");
+  const [origenId, setOrigenId] = useState(entradas[0]?.id ?? "");
   const [evitarEscaleras, setEvitarEscaleras] = useState(false);
   const [ruta, setRuta] = useState<ResultadoRuta | null>(null);
   const [estadoPanel, setEstadoPanel] = useState<EstadoPanel>("medio");
@@ -67,8 +101,12 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
     [ruta],
   );
 
-  const entrada = entradas.find((e) => e.id === entradaId) ?? null;
-  const mismoPunto = destino !== null && destino.id === entradaId;
+  const gruposOrigen = useMemo(() => agruparOrigenes(entradas, destinos), [entradas, destinos]);
+  const origen = useMemo(
+    () => gruposOrigen.flatMap((g) => g.opciones).find((o) => o.id === origenId) ?? null,
+    [gruposOrigen, origenId],
+  );
+  const mismoPunto = destino !== null && destino.id === origenId;
 
   function elegirDestino(d: DestinoAlumno) {
     solicitud.current++;
@@ -84,7 +122,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
     setRuta(null);
   }
 
-  // Vuelve a las opciones (entrada, escaleras) sin perder el destino elegido.
+  // Vuelve a las opciones (punto de partida, escaleras) sin perder el destino elegido.
   function editarRuta() {
     solicitud.current++;
     setRuta(null);
@@ -92,9 +130,9 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   }
 
   // Cambiar una opción invalida la ruta mostrada: se vuelve a pedir con el botón.
-  function cambiarEntrada(id: string) {
+  function cambiarOrigen(id: string) {
     solicitud.current++;
-    setEntradaId(id);
+    setOrigenId(id);
     setRuta(null);
   }
 
@@ -105,14 +143,14 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   }
 
   function pedirRuta(opciones = { evitarEscaleras }) {
-    if (!destino || !entradaId || destino.id === entradaId) return;
+    if (!destino || !origenId || destino.id === origenId) return;
     const numero = ++solicitud.current;
-    const origen = entradaId;
+    const inicio = origenId;
     const fin = destino.id;
     startTransition(async () => {
       let resultado: ResultadoRuta;
       try {
-        resultado = await calcularRuta(origen, fin, opciones);
+        resultado = await calcularRuta(inicio, fin, opciones);
       } catch {
         resultado = { ok: false, motivo: "error_servidor", mensaje: "No pudimos calcular la ruta. Revisa tu conexión e intenta de nuevo." };
       }
@@ -219,9 +257,9 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
               <p className="mt-0.5 text-sm text-slate-600">{ETIQUETA_TIPO[destino.tipo] ?? destino.tipo} · {lugar(destino.edificioNombre, destino.piso)}</p>
               {ruta?.ok ? (
                 <p className="mt-2 text-sm font-semibold text-[var(--brand-primary-active)]">
-                  {ruta.pasos.length} pasos · Desde {entrada?.nombre ?? "la entrada"}{evitarEscaleras ? " · sin escaleras" : ""}
+                  {contarPasos(ruta.pasos)} pasos · Desde {origen?.nombre ?? "el punto de partida"}{evitarEscaleras ? " · sin escaleras" : ""}
                 </p>
-              ) : entradas.length > 0 && !mismoPunto ? (
+              ) : origen && !mismoPunto ? (
                 <button
                   type="button"
                   onClick={() => pedirRuta()}
@@ -252,7 +290,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
               ) : null}
               <div className="mt-5 grid gap-2">
                 <button type="button" onClick={editarRuta} className="rounded-xl border border-[var(--border-strong)] bg-white px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50">
-                  Cambiar entrada u opciones
+                  Cambiar punto de partida u opciones
                 </button>
                 <button type="button" onClick={volverABuscar} className="rounded-xl px-5 py-3 font-semibold text-[var(--brand-primary-active)] hover:bg-[var(--brand-primary-soft)]">
                   Cancelar ruta
@@ -264,21 +302,27 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
               <DetalleDestino nombre={destino.nombre} descripcion={destino.descripcion} fotoUrl={destino.fotoUrl} />
               {destino.alias.length > 0 ? <p className="text-sm text-slate-500">También conocido como: {destino.alias.join(", ")}</p> : null}
 
-              {entradas.length === 0 ? (
-                <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Aún no hay entradas registradas en el mapa, así que no se puede calcular una ruta.</p>
+              {gruposOrigen.length === 0 ? (
+                <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Aún no hay puntos registrados en el mapa, así que no se puede calcular una ruta.</p>
               ) : (
                 <>
                   <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
-                    Entras por
+                    Sales de
                     <select
-                      value={entradaId}
-                      onChange={(e) => cambiarEntrada(e.target.value)}
+                      value={origenId}
+                      onChange={(e) => cambiarOrigen(e.target.value)}
                       className="rounded-xl border border-[var(--border-strong)] bg-white px-3 py-2.5 text-base font-normal text-slate-900"
                     >
-                      {entradas.map((e) => (
-                        <option key={e.id} value={e.id}>{e.nombre}{e.edificioNombre && e.edificioNombre !== e.nombre ? ` · ${e.edificioNombre}` : ""}</option>
+                      {origen ? null : <option value="" disabled>Elige desde dónde sales</option>}
+                      {gruposOrigen.map((g) => (
+                        <optgroup key={g.etiqueta} label={g.etiqueta}>
+                          {g.opciones.map((o) => (
+                            <option key={o.id} value={o.id}>{o.detalle ? `${o.nombre} · ${o.detalle}` : o.nombre}</option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
+                    <span className="text-xs font-normal text-slate-500">Puede ser una entrada o cualquier salón, oficina o servicio.</span>
                   </label>
 
                   <label className="flex items-center gap-2 text-sm text-slate-700">
@@ -286,7 +330,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
                     Evitar escaleras (usar elevadores)
                   </label>
 
-                  {mismoPunto ? <p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Ya estás en {destino.nombre}: la entrada elegida es tu destino.</p> : null}
+                  {mismoPunto ? <p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Ya estás en {destino.nombre}: el punto de partida es tu destino.</p> : null}
                 </>
               )}
 
