@@ -6,9 +6,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import type { PuntoMapa, RolPunto } from "@/lib/rutas/mapa";
+import type { Lectura } from "@/lib/ubicacion";
 import { CENTRO_CAMPUS, LIMITES_CAMPUS, agregarCapaBase, escaparHtml, etiquetaPiso, PISO_PLANTA_BAJA, type CapaBase } from "./mapa-base";
 
 const COLOR_RUTA = "#ff5900";
+const COLOR_UBICACION = "#2563eb";
+// Panel propio para la ubicación: encima de la ruta y sus marcadores (600),
+// debajo de los tooltips (650).
+const PANEL_UBICACION = "ubicacion";
 
 const ESTILO_PUNTO: Record<RolPunto, { tamano: number; fondo: string; texto: string }> = {
   inicio: { tamano: 26, fondo: "#177245", texto: "#ffffff" },
@@ -52,6 +57,9 @@ type Props = {
   margenIzquierdo?: number;
   // Botones +/- (abajo a la derecha). En móvil se ocultan: se usa pellizcar.
   controlesZoom?: boolean;
+  // Última lectura GPS del alumno. Se muestra en cualquier piso (el GPS no
+  // sabe en cuál está la persona).
+  ubicacion?: Lectura | null;
 };
 
 export default function MapaLeafletRuta({
@@ -61,11 +69,18 @@ export default function MapaLeafletRuta({
   margenSuperior = 0,
   margenIzquierdo = 0,
   controlesZoom = true,
+  ubicacion = null,
 }: Props) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
   const capaRef = useRef<L.LayerGroup | null>(null);
   const capaBaseRef = useRef<CapaBase | null>(null);
+  const capaUbicacionRef = useRef<L.LayerGroup | null>(null);
+  // El botón "centrar en mí" lee la lectura más reciente sin recrearse.
+  const ubicacionRef = useRef(ubicacion);
+  useEffect(() => {
+    ubicacionRef.current = ubicacion;
+  }, [ubicacion]);
 
   // Pisos por los que pasa la ruta (en orden de recorrido). El mapa muestra un
   // piso a la vez: su plano y solo los puntos de la ruta que caen en él. La
@@ -99,6 +114,13 @@ export default function MapaLeafletRuta({
     mapaRef.current = mapa;
     capaBaseRef.current = agregarCapaBase(mapa, null);
     capaRef.current = L.layerGroup().addTo(mapa);
+    // pointer-events: none para que el <svg> del panel (que cubre toda la vista)
+    // no tape el hover/toque de los marcadores de la ruta; el punto azul sigue
+    // siendo interactivo porque Leaflet activa sus `path.leaflet-interactive`.
+    const panelUbicacion = mapa.createPane(PANEL_UBICACION);
+    panelUbicacion.style.zIndex = "620";
+    panelUbicacion.style.pointerEvents = "none";
+    capaUbicacionRef.current = L.layerGroup().addTo(mapa);
     // El zoom mínimo es el que hace caber justo los límites en la pantalla:
     // depende del tamaño del contenedor, así que se recalcula al redimensionar.
     const ajustarZoomMinimo = () => {
@@ -118,6 +140,7 @@ export default function MapaLeafletRuta({
       mapaRef.current = null;
       capaRef.current = null;
       capaBaseRef.current = null;
+      capaUbicacionRef.current = null;
     };
   }, []);
 
@@ -170,6 +193,67 @@ export default function MapaLeafletRuta({
       control.remove();
     };
   }, [controlesZoom]);
+
+  // Punto azul con el círculo de precisión. No se re-encuadra con cada lectura
+  // para no mover el mapa mientras la persona lo explora.
+  useEffect(() => {
+    const capa = capaUbicacionRef.current;
+    if (!capa) return;
+    capa.clearLayers();
+    if (!ubicacion) return;
+    const centro = L.latLng(ubicacion.lat, ubicacion.lng);
+    L.circle(centro, {
+      pane: PANEL_UBICACION,
+      radius: ubicacion.precision,
+      color: COLOR_UBICACION,
+      weight: 1,
+      opacity: 0.4,
+      fillColor: COLOR_UBICACION,
+      fillOpacity: 0.12,
+      interactive: false,
+    }).addTo(capa);
+    L.circleMarker(centro, {
+      pane: PANEL_UBICACION,
+      radius: 8,
+      color: "#ffffff",
+      weight: 3,
+      fillColor: COLOR_UBICACION,
+      fillOpacity: 1,
+    })
+      .bindTooltip("Tú estás aquí", { direction: "top", offset: [0, -8] })
+      .addTo(capa);
+  }, [ubicacion]);
+
+  // Botón "centrar en mí" (abajo a la derecha), solo cuando hay ubicación. Se
+  // sube lo que tape el panel inferior (móvil con destino elegido).
+  const hayUbicacion = ubicacion !== null;
+  useEffect(() => {
+    const mapa = mapaRef.current;
+    if (!mapa || !hayUbicacion) return;
+    const control = new L.Control({ position: "bottomright" });
+    control.onAdd = () => {
+      const boton = L.DomUtil.create("button", "");
+      boton.type = "button";
+      boton.textContent = "◎";
+      boton.title = "Centrar en mi ubicación";
+      boton.setAttribute("aria-label", "Centrar en mi ubicación");
+      boton.style.cssText =
+        `margin-bottom:${margenInferior + 10}px;` +
+        "cursor:pointer;width:36px;height:36px;border-radius:8px;border:2px solid #ffffff;" +
+        `background:#fff;color:${COLOR_UBICACION};font:700 20px/1 sans-serif;` +
+        "box-shadow:0 1px 4px rgb(0 0 0 / .3);";
+      L.DomEvent.disableClickPropagation(boton);
+      L.DomEvent.on(boton, "click", () => {
+        const actual = ubicacionRef.current;
+        if (actual) mapa.setView([actual.lat, actual.lng], Math.max(mapa.getZoom(), 19));
+      });
+      return boton;
+    };
+    control.addTo(mapa);
+    return () => {
+      control.remove();
+    };
+  }, [hayUbicacion, margenInferior]);
 
   // Redibuja la ruta y encuadra el mapa cada vez que cambia.
   useEffect(() => {

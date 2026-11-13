@@ -42,7 +42,8 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - Busca destinos por nombre o alias mientras escribe (sin distinguir acentos).
 - Elige la entrada por la que llega y ve la ruta como lista de pasos, con opción de
   evitar escaleras.
-- Pendiente: origen por GPS y ruta dibujada en el mapa.
+- Puede salir desde "Mi ubicación" (GPS) o elegir de la lista; ve su posición en el mapa.
+- Pendiente: navegación en vivo siguiendo el GPS (fase 2).
 
 ### Visitante
 
@@ -236,7 +237,9 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
   `docs/superpowers/specs/2026-10-08-vista-alumno-design.md`).
 - [x] Crear búsqueda de destinos por nombre y alias (`lib/busqueda.ts`, con pruebas).
 - [x] Seleccionar manualmente una entrada como origen.
-- [ ] Usar la ubicación GPS como origen (cuando exista el mapa).
+- [x] Usar la ubicación GPS como origen ("Mi ubicación"; el servidor elige el nodo
+  conectado más cercano del piso 1 — `calcularRutaDesdeUbicacion`, `lib/rutas/cercano.ts`).
+  Diseño: `docs/superpowers/specs/2026-11-13-gps-origen-design.md`.
 - [x] Mostrar información del destino antes de iniciar una ruta.
 - [x] Permitir iniciar, cancelar y reiniciar una ruta.
 
@@ -260,8 +263,12 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
   `lib/rutas/mapa.ts`, con pruebas).
 - [x] Dibujar la ruta sobre el mapa (línea, inicio, destino, pasos numerados y
   cambios de piso; los pasos sin coordenadas se omiten y se avisa).
-- [ ] Mostrar la ubicación del usuario mediante Geolocation API con consentimiento.
-- [ ] Definir límites de precisión y estados cuando el GPS no esté disponible.
+- [x] Mostrar la ubicación del usuario mediante Geolocation API con consentimiento
+  (punto azul con círculo de precisión y botón "centrar en mí" en la vista del alumno).
+- [x] Definir límites de precisión y estados cuando el GPS no esté disponible: precisión
+  máxima 50 m, nodo más cercano a máximo 150 m (`lib/rutas/cercano.ts`, ajustar con
+  pruebas en campo); sin permiso, sin señal o sin https se usa la lista de siempre.
+- [ ] Fase 2 del GPS: seguir la ruta en vivo y dar indicaciones mientras se camina.
 - [ ] Terminar y limpiar el SVG del campus.
 - [ ] Dividir o preparar planos por edificio/piso según el formato final.
 - [ ] Georreferenciar los planos interiores cuando sea necesario.

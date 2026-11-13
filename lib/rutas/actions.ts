@@ -10,6 +10,9 @@
 //   - calcularRuta: requiere una sesión activa (cualquier rol).
 //   - calcularRutaDeVisita: requiere un token de visitante válido y vigente, y
 //     solo calcula la ruta fija de esa visita (no acepta IDs arbitrarios).
+//   - calcularRutaDesdeUbicacion: requiere sesión; parte del nodo más cercano a
+//     la posición GPS del alumno (lib/rutas/cercano.ts). La posición no se
+//     guarda ni se escribe en los logs.
 
 import { createHash } from "node:crypto";
 import { obtenerSesionConPerfil } from "@/utils/auth";
@@ -23,6 +26,7 @@ import {
   type NodoGrafo,
   type OpcionesRuta,
 } from "./dijkstra";
+import { nodoMasCercano, validarPosicion } from "./cercano";
 
 export type CambioPiso = {
   desde: number;
@@ -51,11 +55,21 @@ export type PasoRutaDetallado = {
   cambioPiso: CambioPiso | null;
 };
 
+// Nodo desde el que arrancó una ruta pedida con la ubicación GPS.
+export type OrigenUbicacion = { id: string; nombre: string; distanciaMetros: number };
+
+export type MotivoUbicacion =
+  | "ubicacion_invalida"
+  | "ubicacion_imprecisa"
+  | "fuera_del_campus"
+  | "sin_candidatos"
+  | "ya_en_destino";
+
 export type ResultadoRuta =
-  | { ok: true; pasos: PasoRutaDetallado[]; costoTotal: number }
+  | { ok: true; pasos: PasoRutaDetallado[]; costoTotal: number; origen?: OrigenUbicacion }
   | {
       ok: false;
-      motivo: MotivoSinRuta | "no_autorizado" | "visita_sin_nodos" | "error_servidor";
+      motivo: MotivoSinRuta | MotivoUbicacion | "no_autorizado" | "visita_sin_nodos" | "error_servidor";
       mensaje: string;
     };
 
@@ -110,19 +124,19 @@ function detectarCambioPiso(anterior: FilaNodo, actual: FilaNodo): CambioPiso | 
   };
 }
 
-// No se exporta: solo se llega aquí después de validar sesión o token.
-async function calcularRutaSinValidar(
-  origenId: string,
-  destinoId: string,
-  opciones: OpcionesRuta,
-): Promise<ResultadoRuta> {
-  let nodos: FilaNodo[];
-  let conexiones: ConexionGrafo[];
-  let edificios: FilaEdificio[];
+type Grafo = { nodos: FilaNodo[]; conexiones: ConexionGrafo[]; edificios: FilaEdificio[] };
 
+const ERROR_GRAFO: ResultadoRuta = {
+  ok: false,
+  motivo: "error_servidor",
+  mensaje: "No pudimos cargar el mapa del campus. Intenta de nuevo en un momento.",
+};
+
+// Carga el grafo completo; null si falla (el error ya queda en el log).
+async function cargarGrafo(): Promise<Grafo | null> {
   try {
     const supabase = createServiceClient();
-    [nodos, conexiones, edificios] = await Promise.all([
+    const [nodos, conexiones, edificios] = await Promise.all([
       leerTodo<FilaNodo>((desde, hasta) =>
         supabase
           .from("nodos")
@@ -141,15 +155,20 @@ async function calcularRutaSinValidar(
         supabase.from("edificios").select("id, nombre").order("id").range(desde, hasta),
       ),
     ]);
+    return { nodos, conexiones, edificios };
   } catch (error) {
     console.error("[rutas] No se pudo cargar el grafo:", error);
-    return {
-      ok: false,
-      motivo: "error_servidor",
-      mensaje: "No pudimos cargar el mapa del campus. Intenta de nuevo en un momento.",
-    };
+    return null;
   }
+}
 
+// Calcula la ruta sobre un grafo ya cargado y la arma para la interfaz.
+function armarRuta(
+  { nodos, conexiones, edificios }: Grafo,
+  origenId: string,
+  destinoId: string,
+  opciones: OpcionesRuta,
+): ResultadoRuta {
   const ruta = buscarRuta(nodos, conexiones, origenId, destinoId, opciones);
 
   if (!ruta) {
@@ -178,6 +197,16 @@ async function calcularRutaSinValidar(
   });
 
   return { ok: true, pasos, costoTotal: ruta[ruta.length - 1].costoAcumulado };
+}
+
+// No se exporta: solo se llega aquí después de validar sesión o token.
+async function calcularRutaSinValidar(
+  origenId: string,
+  destinoId: string,
+  opciones: OpcionesRuta,
+): Promise<ResultadoRuta> {
+  const grafo = await cargarGrafo();
+  return grafo ? armarRuta(grafo, origenId, destinoId, opciones) : ERROR_GRAFO;
 }
 
 function leerOpciones(opciones?: OpcionesRuta): OpcionesRuta {
@@ -250,4 +279,55 @@ export async function calcularRutaDeVisita(
     visita.destino_nodo_id,
     leerOpciones(opciones),
   );
+}
+
+const MENSAJES_UBICACION: Record<MotivoUbicacion, string> = {
+  ubicacion_invalida: "No pudimos leer tu ubicación.",
+  ubicacion_imprecisa:
+    "Tu ubicación es imprecisa (más de 50 m). Elige tu punto de partida de la lista.",
+  fuera_del_campus: "Parece que no estás en el campus. Elige tu punto de partida de la lista.",
+  sin_candidatos:
+    "Todavía no hay puntos del mapa cerca de tu ubicación. Elige tu punto de partida de la lista.",
+  ya_en_destino: "Ya estás junto a tu destino.",
+};
+
+function sinRutaPorUbicacion(motivo: MotivoUbicacion): ResultadoRuta {
+  return { ok: false, motivo, mensaje: MENSAJES_UBICACION[motivo] };
+}
+
+// Ruta desde la ubicación GPS del alumno hasta un destino. Parte del nodo
+// conectado más cercano del piso 1 (el GPS no detecta pisos).
+export async function calcularRutaDesdeUbicacion(
+  posicion: unknown,
+  destinoId: string,
+  opciones?: OpcionesRuta,
+): Promise<ResultadoRuta> {
+  const sesion = await obtenerSesionConPerfil();
+  if (!sesion) {
+    return { ok: false, motivo: "no_autorizado", mensaje: "Inicia sesión para calcular rutas." };
+  }
+  const valida = validarPosicion(posicion);
+  if (!valida) return sinRutaPorUbicacion("ubicacion_invalida");
+  if (typeof destinoId !== "string" || !UUID_RE.test(destinoId)) {
+    return { ok: false, motivo: "destino_inexistente", mensaje: "Destino inválido." };
+  }
+
+  const grafo = await cargarGrafo();
+  if (!grafo) return ERROR_GRAFO;
+
+  const opcionesLeidas = leerOpciones(opciones);
+  const cercano = nodoMasCercano(valida, grafo.nodos, grafo.conexiones, opcionesLeidas);
+  if (!cercano.ok) return sinRutaPorUbicacion(cercano.motivo);
+  if (cercano.nodo.id === destinoId) return sinRutaPorUbicacion("ya_en_destino");
+
+  const resultado = armarRuta(grafo, cercano.nodo.id, destinoId, opcionesLeidas);
+  if (!resultado.ok) return resultado;
+  return {
+    ...resultado,
+    origen: {
+      id: cercano.nodo.id,
+      nombre: cercano.nodo.nombre,
+      distanciaMetros: cercano.distanciaMetros,
+    },
+  };
 }

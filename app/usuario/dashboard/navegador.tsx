@@ -6,9 +6,11 @@ import { ETIQUETA_TIPO, ListaPasos, contarPasos } from "@/app/components/pasos-r
 import { DetalleDestino } from "@/app/components/detalle-destino";
 import { ALTURA_PANEL_MINIMO, PanelDeslizable, type EstadoPanel } from "@/app/components/panel-deslizable";
 import { buscarDestinos } from "@/lib/busqueda";
-import { calcularRuta, type ResultadoRuta } from "@/lib/rutas/actions";
+import { calcularRuta, calcularRutaDesdeUbicacion, type ResultadoRuta } from "@/lib/rutas/actions";
 import { puntosDeRuta } from "@/lib/rutas/mapa";
 import { useEscritorio } from "@/app/components/use-escritorio";
+import { useUbicacion } from "@/app/components/use-ubicacion";
+import { lecturaUtil, mensajeUbicacion } from "@/lib/ubicacion";
 import { MenuCuenta } from "./menu-cuenta";
 
 // Leaflet usa `window`: solo se carga en el navegador.
@@ -35,6 +37,8 @@ export type EntradaAlumno = {
 };
 
 const MAX_RESULTADOS = 8;
+// Valor del selector de origen para "Mi ubicación" (los demás son IDs de nodo).
+const ORIGEN_GPS = "gps";
 // Alto aproximado de la barra de búsqueda flotante, para que la ruta no quede debajo.
 const MARGEN_SUPERIOR_MAPA = 72;
 // Ancho de la columna de tarjetas en escritorio (368 px + 16 px de separación).
@@ -47,9 +51,9 @@ function lugar(edificio: string | null, piso: number) {
 type OpcionOrigen = { id: string; nombre: string; detalle: string | null };
 type GrupoOrigen = { etiqueta: string; opciones: OpcionOrigen[] };
 
-// Puntos de partida: primero las entradas y luego el resto de los destinos
-// buscables agrupados por edificio, para poder probar rutas entre salones.
-// Cuando llegue el GPS, el origen será la posición del usuario.
+// Puntos de partida de la lista: primero las entradas y luego el resto de los
+// destinos buscables agrupados por edificio. "Mi ubicación" (GPS) va aparte,
+// antes de estos grupos, y la lista sigue disponible si no hay GPS.
 function agruparOrigenes(entradas: EntradaAlumno[], destinos: DestinoAlumno[]): GrupoOrigen[] {
   const grupos: GrupoOrigen[] = [];
   if (entradas.length > 0) {
@@ -81,9 +85,17 @@ function agruparOrigenes(entradas: EntradaAlumno[], destinos: DestinoAlumno[]): 
 export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: DestinoAlumno[]; entradas: EntradaAlumno[]; nombreUsuario: string }) {
   const [consulta, setConsulta] = useState("");
   const [destino, setDestino] = useState<DestinoAlumno | null>(null);
-  const [origenId, setOrigenId] = useState(entradas[0]?.id ?? "");
+  // null = el alumno no ha elegido: se usa su ubicación si hay, si no la primera entrada.
+  const [origenElegido, setOrigenElegido] = useState<string | null>(null);
+  const ubicacion = useUbicacion();
+  // `lectura` se dibuja en el mapa aunque sea imprecisa; solo una lectura útil
+  // (precisión ≤ 50 m) se ofrece como punto de partida.
+  const lectura = ubicacion.estado === "ok" ? ubicacion.lectura : null;
+  const gpsUtil = lecturaUtil(lectura);
   const [evitarEscaleras, setEvitarEscaleras] = useState(false);
   const [ruta, setRuta] = useState<ResultadoRuta | null>(null);
+  // Nombre del punto de partida de la lista con el que se pidió la ruta mostrada.
+  const [rutaDesde, setRutaDesde] = useState<string | null>(null);
   const [estadoPanel, setEstadoPanel] = useState<EstadoPanel>("medio");
   const [calculando, startTransition] = useTransition();
   const escritorio = useEscritorio();
@@ -102,11 +114,19 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   );
 
   const gruposOrigen = useMemo(() => agruparOrigenes(entradas, destinos), [entradas, destinos]);
+  // Origen efectivo: si se eligió "Mi ubicación" (o no se eligió nada) y no hay
+  // lectura, se cae a la primera entrada sin perder la elección.
+  const primeraEntrada = entradas[0]?.id ?? "";
+  const origenId =
+    origenElegido === null
+      ? gpsUtil ? ORIGEN_GPS : primeraEntrada
+      : origenElegido === ORIGEN_GPS && !gpsUtil ? primeraEntrada : origenElegido;
+  const usandoGps = origenId === ORIGEN_GPS;
   const origen = useMemo(
     () => gruposOrigen.flatMap((g) => g.opciones).find((o) => o.id === origenId) ?? null,
     [gruposOrigen, origenId],
   );
-  const mismoPunto = destino !== null && destino.id === origenId;
+  const mismoPunto = destino !== null && !usandoGps && destino.id === origenId;
 
   function elegirDestino(d: DestinoAlumno) {
     solicitud.current++;
@@ -132,7 +152,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   // Cambiar una opción invalida la ruta mostrada: se vuelve a pedir con el botón.
   function cambiarOrigen(id: string) {
     solicitud.current++;
-    setOrigenId(id);
+    setOrigenElegido(id);
     setRuta(null);
   }
 
@@ -143,19 +163,26 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   }
 
   function pedirRuta(opciones = { evitarEscaleras }) {
-    if (!destino || !origenId || destino.id === origenId) return;
+    if (!destino || !origenId || mismoPunto) return;
+    if (usandoGps && !gpsUtil) return;
     const numero = ++solicitud.current;
     const inicio = origenId;
     const fin = destino.id;
+    // Se copia la lectura del momento: la ubicación puede cambiar mientras se calcula.
+    const posicion = usandoGps && lectura ? { lat: lectura.lat, lng: lectura.lng, precision: lectura.precision } : null;
+    const desde = origen?.nombre ?? null;
     startTransition(async () => {
       let resultado: ResultadoRuta;
       try {
-        resultado = await calcularRuta(inicio, fin, opciones);
+        resultado = posicion
+          ? await calcularRutaDesdeUbicacion(posicion, fin, opciones)
+          : await calcularRuta(inicio, fin, opciones);
       } catch {
         resultado = { ok: false, motivo: "error_servidor", mensaje: "No pudimos calcular la ruta. Revisa tu conexión e intenta de nuevo." };
       }
       if (numero === solicitud.current) {
         setRuta(resultado);
+        setRutaDesde(desde);
         // Con ruta, el panel baja para dejar ver el mapa; con error, se queda a la vista.
         setEstadoPanel(resultado.ok ? "minimo" : "medio");
       }
@@ -176,6 +203,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
         {/* Móvil: la barra queda arriba y el panel abajo. Escritorio: ambos son tarjetas a la izquierda. */}
         <MapaLeafletRuta
           puntos={puntos}
+          ubicacion={lectura}
           className="h-full w-full"
           margenSuperior={escritorio ? 0 : MARGEN_SUPERIOR_MAPA}
           margenInferior={!escritorio && destino ? ALTURA_PANEL_MINIMO : 0}
@@ -257,9 +285,13 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
               <p className="mt-0.5 text-sm text-slate-600">{ETIQUETA_TIPO[destino.tipo] ?? destino.tipo} · {lugar(destino.edificioNombre, destino.piso)}</p>
               {ruta?.ok ? (
                 <p className="mt-2 text-sm font-semibold text-[var(--brand-primary-active)]">
-                  {contarPasos(ruta.pasos)} pasos · Desde {origen?.nombre ?? "el punto de partida"}{evitarEscaleras ? " · sin escaleras" : ""}
+                  {contarPasos(ruta.pasos)} pasos · Desde{" "}
+                  {ruta.origen
+                    ? `${ruta.origen.nombre} (a ${Math.round(ruta.origen.distanciaMetros)} m de ti)`
+                    : (rutaDesde ?? "el punto de partida")}
+                  {evitarEscaleras ? " · sin escaleras" : ""}
                 </p>
-              ) : origen && !mismoPunto ? (
+              ) : (usandoGps || origen) && !mismoPunto ? (
                 <button
                   type="button"
                   onClick={() => pedirRuta()}
@@ -313,7 +345,8 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
                       onChange={(e) => cambiarOrigen(e.target.value)}
                       className="rounded-xl border border-[var(--border-strong)] bg-white px-3 py-2.5 text-base font-normal text-slate-900"
                     >
-                      {origen ? null : <option value="" disabled>Elige desde dónde sales</option>}
+                      {origen || usandoGps ? null : <option value="" disabled>Elige desde dónde sales</option>}
+                      <option value={ORIGEN_GPS} disabled={!gpsUtil}>Mi ubicación</option>
                       {gruposOrigen.map((g) => (
                         <optgroup key={g.etiqueta} label={g.etiqueta}>
                           {g.opciones.map((o) => (
@@ -322,7 +355,14 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
                         </optgroup>
                       ))}
                     </select>
-                    <span className="text-xs font-normal text-slate-500">Puede ser una entrada o cualquier salón, oficina o servicio.</span>
+                    <span className="text-xs font-normal text-slate-500">
+                      {lectura
+                        ? gpsUtil
+                          ? `Tu ubicación: precisión ±${Math.round(lectura.precision)} m.`
+                          : `Tu ubicación es imprecisa (±${Math.round(lectura.precision)} m) para usarla como punto de partida.`
+                        : mensajeUbicacion(ubicacion)}{" "}
+                      También puede ser una entrada o cualquier salón, oficina o servicio.
+                    </span>
                   </label>
 
                   <label className="flex items-center gap-2 text-sm text-slate-700">

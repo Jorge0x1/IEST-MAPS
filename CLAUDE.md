@@ -73,6 +73,10 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
   SQL); si falta alguna coordenada, peso fijo 1. Nunca falla por datos incompletos.
 - **GPS y pisos:** el GPS no detecta cambio de piso. El cambio de piso se indica en la
   ruta y se confirma manualmente.
+- **GPS como origen:** `calcularRutaDesdeUbicacion` (servidor) elige el nodo conectado
+  más cercano del piso 1 (`lib/rutas/cercano.ts`: precisión ≤ 50 m, nodo a ≤ 150 m).
+  La ubicación nunca se guarda ni se loguea. La lista de puntos de partida se conserva
+  siempre como alternativa. Geolocation solo funciona en https (Vercel o localhost).
 - **Pathfinding:** Dijkstra con montículo binario, en el servidor y en TypeScript (no
   PL/pgSQL). Función pura en `lib/rutas/dijkstra.ts` (probada con `npm test`); punto de
   entrada único en `lib/rutas/actions.ts` (`calcularRuta`, `calcularRutaDeVisita`).
