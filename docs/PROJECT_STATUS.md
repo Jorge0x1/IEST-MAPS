@@ -1,6 +1,6 @@
 # IEST-MAPS v2 — estado del proyecto
 
-Última actualización: 8 de octubre de 2026.
+Última actualización: 17 de noviembre de 2026.
 
 ## Objetivo
 
@@ -17,6 +17,8 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - Supabase para Postgres, autenticación y Row Level Security.
 - `@supabase/ssr` para integrar la sesión con Next.js.
 - `qrcode` para generar códigos QR localmente en el navegador.
+- Leaflet para los mapas (tiles de OpenStreetMap + planos del campus como `imageOverlay`).
+- Despliegue en Vercel; `next` es la rama de producción prevista.
 - Rama de desarrollo utilizada actualmente: `next`.
 
 ## Roles y alcance
@@ -27,6 +29,8 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - Activa o revoca el acceso de usuarios.
 - Gestiona edificios.
 - Gestiona destinos/nodos y conexiones; traza pasillos en el mapa.
+- Agrega descripción y foto a cada destino.
+- Crea cuentas de prueba por rol o asigna contraseña a usuarios existentes.
 - Pendiente: salones, oficinas y maestros como catálogos propios.
 
 ### Guardia
@@ -38,11 +42,14 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 
 ### Alumno
 
-- Accede mediante Google con correo institucional autorizado.
+- Accede mediante Google con correo institucional autorizado (o con correo y contraseña si el
+  admin le asignó una).
 - Busca destinos por nombre o alias mientras escribe (sin distinguir acentos).
 - Elige la entrada por la que llega y ve la ruta como lista de pasos, con opción de
   evitar escaleras.
 - Puede salir desde "Mi ubicación" (GPS) o elegir de la lista; ve su posición en el mapa.
+- Ve el mapa a pantalla completa con panel deslizable (móvil) o panel lateral (escritorio),
+  la ficha del destino con descripción y foto, y un selector de piso (1 a 4).
 - Pendiente: navegación en vivo siguiendo el GPS (fase 2).
 
 ### Visitante
@@ -51,7 +58,7 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - Entra mediante el token contenido en el QR generado por el guardia.
 - Solo puede consultar la visita y destino asociados al token.
 - Puede finalizar su propia visita.
-- Pendiente: visualizar la ruta fija asignada en el mapa.
+- Ve la ruta fija asignada en el mapa, con el mismo layout y selector de piso del alumno.
 
 ## Funcionalidad terminada
 
@@ -72,6 +79,7 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - [x] Preautorización de correos antes del primer acceso.
 - [x] Asignación anticipada de rol.
 - [x] Activación y revocación de acceso.
+- [x] Acceso con correo y contraseña además de Google (cuentas de prueba por rol).
 
 ### Panel de administrador
 
@@ -83,6 +91,7 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - [x] Captura de nombre, descripción, latitud y longitud de edificios.
 - [x] CRUD de destinos/nodos con edificio, piso, tipo, alias y coordenadas.
 - [x] Clasificación de nodos entre destinos buscables y puntos auxiliares del recorrido.
+- [x] Descripción (máx. 500 caracteres) y foto JPEG de cada destino (migración 0010).
 - [x] Mapa del grafo (`/admin/grafo`): todos los nodos y conexiones sobre Leaflet,
   filtro por piso, diagnóstico de problemas (partes desconectadas, nodos aislados,
   destinos inalcanzables, pasillos marcados como destino, escaleras/elevadores sin
@@ -127,6 +136,9 @@ Las migraciones existentes y aplicadas son:
 
 9. `0009_visita_ids_para_ruta.sql`: `obtener_visita_por_token` devuelve también
    `origen_nodo_id` y `destino_nodo_id` para el motor de rutas.
+10. `0010_foto_y_descripcion_destinos.sql`: `descripcion` y `foto_path` en `nodos` y bucket
+    público `destinos` en Storage (solo el admin escribe). Verificar que esté aplicada en
+    Supabase antes de desplegar.
 
 Cuando se agregue una migración, debe crearse un archivo nuevo. No se deben editar las
 migraciones ya aplicadas para cambiar una base existente.
@@ -152,8 +164,14 @@ migraciones ya aplicadas para cambiar una base existente.
 ### Mapas, GPS y pisos
 
 - Leaflet puede mostrar un mapa real o una imagen/SVG mediante capas diferentes.
-- El mapa detallado del campus en SVG está aproximadamente al 50 % y todavía no debe
-  bloquear el desarrollo de los demás módulos.
+- Los planos del campus (exportados de AutoCAD) se superponen sobre OSM con
+  `L.imageOverlay` (`app/components/mapa-base.ts`). Planta baja = piso 1, luego pisos 2, 3
+  y 4 (no existe piso 0); todos comparten las mismas cuatro esquinas de calibración
+  (`docs/CALIBRACION_PLANO.md`). El SVG todavía tiene detalles por completar.
+- GPS: tras la prueba en campo (celular mucho mejor que laptop, con error de pocos metros)
+  se decidió no recalibrar plano ni nodos por ahora. El punto azul se suaviza y solo se pega
+  a los segmentos de la ruta mientras hay una ruta abierta (piso 1, hasta 10 m). Si el
+  alumno no da permiso de ubicación, se conserva el origen por lista.
 - La estrategia prevista es híbrida:
   - exterior: coordenadas reales y geolocalización del navegador;
   - interior: plano por edificio y piso, con nodos y conexiones propios;
@@ -252,7 +270,7 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 - [x] Instrucciones básicas por paso, edificio y piso en la pantalla del visitante.
 - [x] Opción de evitar escaleras.
 - [ ] Agregar `SUPABASE_SERVICE_ROLE_KEY` también en las variables del despliegue.
-- [ ] Compactar pasos consecutivos de pasillo en una sola instrucción.
+- [x] Compactar pasos consecutivos de pasillo en una sola instrucción.
 - [x] Usar `calcularRuta` desde la vista del alumno.
 
 ### 5. Mapa exterior e interiores
@@ -272,13 +290,15 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
   tramo más cercano de la ruta abierta, piso 1, ≤ 10 m (`ajustarARuta`,
   `lib/rutas/ajuste.ts`). Diseño: `docs/superpowers/specs/2026-11-14-gps-suavizado-y-ajuste-design.md`.
 - [ ] Fase 2 del GPS: seguir la ruta en vivo y dar indicaciones mientras se camina.
-- [ ] Terminar y limpiar el SVG del campus.
-- [ ] Dividir o preparar planos por edificio/piso según el formato final.
-- [ ] Georreferenciar los planos interiores cuando sea necesario.
-- [ ] Sustituir la capa de OSM por el SVG georreferenciado (`L.imageOverlay` en
-  `crearCapaBase`).
-- [ ] Cambiar la capa visible por piso.
+- [ ] Terminar y limpiar el SVG del campus (faltan elementos del plano).
+- [x] Preparar planos por piso (`planta-baja.svg`, `piso-2.svg` a `piso-4.svg`).
+- [x] Georreferenciar los planos (4 puntos de control, error ≤ 0.4 m en planta baja).
+- [x] Superponer el plano georreferenciado sobre OSM (`agregarCapaBase`).
+- [x] Cambiar la capa visible por piso (selector en el mapa de rutas).
+- [ ] Registrar en el admin los edificios, salones y pasillos reales (guía:
+  `docs/REGISTRO_PLANTA_BAJA.md`) y repetirlo en los pisos 2 a 4.
 - [ ] Pedir confirmación manual al completar una transición de piso.
+- [ ] Ajustar el punto azul a la ruta también en pisos 2 a 4 (hoy solo piso 1).
 
 ### 6. Catálogos administrativos restantes
 
@@ -307,10 +327,21 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 
 ## Próximo bloque recomendado
 
-Completar el grafo real del campus (conectar los pasillos trazados con entradas y
-destinos, y representar escaleras/elevadores entre pisos) y probar de punta a punta
-las rutas de visitante y alumno en el mapa de prueba. Después, sobreponer el SVG del
-campus georreferenciado en lugar de los tiles de OpenStreetMap.
+1. **GPS fase 2**: seguir la ruta en vivo mientras el alumno camina (paso actual,
+   indicaciones automáticas, recalcular si se sale de la ruta). Los cambios de piso se
+   confirman manualmente.
+2. **Datos del grafo**: terminar de trazar pasillos y registrar salones en los pisos 1 a 4,
+   y conectar escaleras y elevadores entre pisos. Sin esto no se pueden probar rutas
+   completas entre pisos.
+3. **Operación**: agregar `SUPABASE_SERVICE_ROLE_KEY` en Vercel y confirmar que la
+   migración 0010 está aplicada.
+
+## Documentación relacionada
+
+- `docs/CALIBRACION_PLANO.md`: cómo calibrar y regenerar los planos.
+- `docs/REGISTRO_PLANTA_BAJA.md`: orden de trabajo para capturar la planta baja.
+- `docs/superpowers/specs/` y `docs/superpowers/plans/`: diseños y planes de la vista del
+  alumno y del GPS.
 
 ## Comandos habituales
 
