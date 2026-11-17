@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { pisoRegistrado } from "@/lib/pisos";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 
@@ -62,8 +63,8 @@ export async function crearCadenaNodos(
   if (!UUID_RE.test(edificioId)) {
     return { ok: false, mensaje: "Selecciona un edificio." };
   }
-  if (!Number.isInteger(piso) || piso < -10 || piso > 100) {
-    return { ok: false, mensaje: "El piso debe ser un entero entre -10 y 100." };
+  if (!pisoRegistrado(piso)) {
+    return { ok: false, mensaje: "Selecciona un piso dado de alta (1 a 4)." };
   }
   if (!TIPOS_VALIDOS.has(tipo)) {
     return { ok: false, mensaje: "Selecciona un tipo de nodo válido." };

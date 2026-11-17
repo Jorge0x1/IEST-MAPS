@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import { agregarCapaBase } from "@/app/components/mapa-base";
+import { agregarCapaBase, type CapaBase } from "@/app/components/mapa-base";
+import { SelectorPiso } from "./selector-piso";
 
 const CENTRO_CAMPUS: [number, number] = [22.323777, -97.880432];
 
@@ -20,13 +21,21 @@ export type PuntoTrazo = { lat: number; lng: number };
 export function PathDrawer({
   puntos,
   onPuntosChange,
+  piso,
+  onPisoChange,
 }: {
   puntos: PuntoTrazo[];
   onPuntosChange: (puntos: PuntoTrazo[]) => void;
+  // Piso cuyo plano se ve; lo controla el formulario para que coincida con el piso
+  // donde se van a crear los nodos.
+  piso: number | null;
+  onPisoChange: (piso: number) => void;
 }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
   const capaRef = useRef<L.LayerGroup | null>(null);
+  const capaBaseRef = useRef<CapaBase | null>(null);
+  const pisoRef = useRef(piso);
   const puntosRef = useRef(puntos);
   const onCambioRef = useRef(onPuntosChange);
 
@@ -35,6 +44,7 @@ export function PathDrawer({
   useEffect(() => {
     puntosRef.current = puntos;
     onCambioRef.current = onPuntosChange;
+    pisoRef.current = piso;
   });
 
   // El mapa se crea una sola vez. El punto se agrega leyendo de una ref para
@@ -48,7 +58,7 @@ export function PathDrawer({
     });
     mapaRef.current = mapa;
 
-    agregarCapaBase(mapa);
+    capaBaseRef.current = agregarCapaBase(mapa, pisoRef.current);
 
     capaRef.current = L.layerGroup().addTo(mapa);
 
@@ -67,8 +77,14 @@ export function PathDrawer({
       mapa.remove();
       mapaRef.current = null;
       capaRef.current = null;
+      capaBaseRef.current = null;
     };
   }, []);
+
+  // Cambia el plano cuando cambia el piso elegido en el formulario o en el selector.
+  useEffect(() => {
+    capaBaseRef.current?.cambiarPiso(piso);
+  }, [piso]);
 
   // Redibuja los marcadores numerados y la línea del recorrido cada vez que
   // cambia la lista de puntos (agregar, deshacer, limpiar).
@@ -88,5 +104,10 @@ export function PathDrawer({
     }
   }, [puntos]);
 
-  return <div ref={contenedorRef} className="h-[420px] w-full rounded-xl border border-slate-300" />;
+  return (
+    <div className="grid gap-2">
+      <SelectorPiso piso={piso} onPisoChange={onPisoChange} />
+      <div ref={contenedorRef} className="h-[420px] w-full rounded-xl border border-slate-300" />
+    </div>
+  );
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { BUCKET_DESTINOS, RE_FOTO_DESTINO } from "@/lib/fotos";
+import { pisoRegistrado } from "@/lib/pisos";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 
@@ -69,8 +70,8 @@ function validarDestino(formData: FormData): { ok: true; data: DatosDestino } | 
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(edificioId)) {
     return { ok: false, error: "Selecciona un edificio válido." };
   }
-  if (!Number.isInteger(piso) || piso < -10 || piso > 100) {
-    return { ok: false, error: "El piso debe ser un entero entre -10 y 100." };
+  if (piso === null || !pisoRegistrado(piso)) {
+    return { ok: false, error: "Selecciona un piso dado de alta (1 a 4)." };
   }
   if ((lat === null) !== (lng === null)) {
     return { ok: false, error: "Captura ambas coordenadas o deja ambas vacías." };

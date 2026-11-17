@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { actualizarDestino, crearDestino, type EstadoDestino } from "./actions";
 import { FotoDestinoInput } from "./foto-destino-input";
+import { etiquetaPiso, PISO_PLANTA_BAJA, pisoRegistrado, PISOS_REGISTRADOS } from "@/lib/pisos";
 import styles from "./destinos.module.css";
 
 const LocationPicker = dynamic(
@@ -47,11 +48,16 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
   const formRef = useRef<HTMLFormElement>(null);
   const [mapResetVersion, setMapResetVersion] = useState(0);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  // Un destino viejo con un piso sin plano (p. ej. 0) arranca sin piso elegido para que
+  // el admin lo corrija; uno nuevo arranca en la planta baja.
+  const pisoInicial = destino ? (pisoRegistrado(destino.piso) ? destino.piso : null) : PISO_PLANTA_BAJA;
+  const [piso, setPiso] = useState<number | null>(pisoInicial);
 
   useEffect(() => {
     if (estado.ok && !destino) {
       formRef.current?.reset();
       const resetId = window.setTimeout(() => {
+        setPiso(PISO_PLANTA_BAJA);
         setMapResetVersion((version) => version + 1);
       }, 0);
 
@@ -89,16 +95,16 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
 
         <label className={styles.field}>
           Piso
-          <input
+          <select
             name="piso"
-            type="number"
             required
-            step={1}
-            min={-10}
-            max={100}
-            defaultValue={destino?.piso ?? 0}
+            value={piso ?? ""}
+            onChange={(evento) => setPiso(Number(evento.target.value))}
             className={styles.control}
-          />
+          >
+            <option value="" disabled>Selecciona el piso</option>
+            {PISOS_REGISTRADOS.map((opcion) => <option key={opcion} value={opcion}>{etiquetaPiso(opcion)}</option>)}
+          </select>
         </label>
       </div>
 
@@ -151,6 +157,8 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
             lngName="lng"
             lat={destino?.lat ?? null}
             lng={destino?.lng ?? null}
+            piso={piso}
+            onPisoChange={setPiso}
           />
         </div>
       </div>

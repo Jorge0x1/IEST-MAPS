@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { crearCadenaNodos, type EstadoCadena } from "./actions";
 import type { PuntoTrazo } from "../../components/path-drawer";
+import { etiquetaPiso, PISO_PLANTA_BAJA, PISOS_REGISTRADOS } from "@/lib/pisos";
 
 const PathDrawer = dynamic(
   () => import("../../components/path-drawer").then((modulo) => modulo.PathDrawer),
@@ -23,6 +24,7 @@ const tipos = [
 
 export function TrazarForm({ edificios }: { edificios: { id: string; nombre: string }[] }) {
   const [puntos, setPuntos] = useState<PuntoTrazo[]>([]);
+  const [piso, setPiso] = useState<number>(PISO_PLANTA_BAJA);
   const [estado, formAction, pendiente] = useActionState(crearCadenaNodos, estadoInicial);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -51,7 +53,10 @@ export function TrazarForm({ edificios }: { edificios: { id: string; nombre: str
         </label>
         <label className="grid gap-1.5 text-sm font-medium text-slate-700">
           Piso
-          <input name="piso" type="number" required step={1} min={-10} max={100} defaultValue={0} className="rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-950" />
+          <select name="piso" required value={piso} onChange={(evento) => setPiso(Number(evento.target.value))} className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-950">
+            {PISOS_REGISTRADOS.map((opcion) => <option key={opcion} value={opcion}>{etiquetaPiso(opcion)}</option>)}
+          </select>
+          <span className="text-xs font-normal text-slate-500">También cambia el plano que se ve en el mapa.</span>
         </label>
       </div>
 
@@ -85,7 +90,7 @@ export function TrazarForm({ edificios }: { edificios: { id: string; nombre: str
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{puntos.length} punto(s)</span>
       </div>
 
-      <PathDrawer puntos={puntos} onPuntosChange={setPuntos} />
+      <PathDrawer puntos={puntos} onPuntosChange={setPuntos} piso={piso} onPisoChange={setPiso} />
       <input type="hidden" name="puntos" value={JSON.stringify(puntos)} />
 
       <div className="flex flex-wrap gap-2">

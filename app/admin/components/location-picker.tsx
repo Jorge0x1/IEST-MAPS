@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import L from "leaflet";
-import { agregarCapaBase } from "@/app/components/mapa-base";
+import { agregarCapaBase, type CapaBase } from "@/app/components/mapa-base";
+import { PISO_PLANTA_BAJA } from "@/lib/pisos";
+import { SelectorPiso } from "./selector-piso";
 import styles from "./location-picker.module.css";
 
 // Centro aproximado del campus, mientras no tengamos el mapa/SVG definitivo.
@@ -27,12 +29,23 @@ export function LocationPicker({
   lngName,
   lat,
   lng,
+  piso,
+  onPisoChange,
 }: {
   latName: string;
   lngName: string;
   lat?: number | null;
   lng?: number | null;
+  // Piso cuyo plano se ve. Si el formulario lo controla (destinos), se pasan ambos y el
+  // selector del mapa y el del formulario quedan sincronizados; si no, el mapa lleva
+  // su propio piso (edificios).
+  piso?: number | null;
+  onPisoChange?: (piso: number) => void;
 }) {
+  const [pisoPropio, setPisoPropio] = useState<number>(PISO_PLANTA_BAJA);
+  const controlado = onPisoChange !== undefined;
+  const pisoVisible = controlado ? (piso ?? null) : pisoPropio;
+  const cambiarPiso = controlado ? onPisoChange : setPisoPropio;
   const puntoInicial = lat != null && lng != null ? { lat, lng } : null;
   const [punto, setPunto] = useState<Punto | null>(puntoInicial);
   const [latitudVisible, setLatitudVisible] = useState(
@@ -46,6 +59,8 @@ export function LocationPicker({
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
   const marcadorRef = useRef<L.Marker | null>(null);
+  const capaBaseRef = useRef<CapaBase | null>(null);
+  const pisoRef = useRef(pisoVisible);
   const puntoInicialRef = useRef(punto);
   const idBase = useId();
 
@@ -86,7 +101,7 @@ export function LocationPicker({
     });
     mapaRef.current = mapa;
 
-    agregarCapaBase(mapa);
+    capaBaseRef.current = agregarCapaBase(mapa, pisoRef.current);
 
     if (puntoActual) {
       marcadorRef.current = L.marker(puntoActual, { icon: iconoPredeterminado }).addTo(mapa);
@@ -107,8 +122,17 @@ export function LocationPicker({
       mapa.remove();
       mapaRef.current = null;
       marcadorRef.current = null;
+      capaBaseRef.current = null;
     };
   }, [actualizarPunto, expandido]);
+
+  // Cambia el plano cuando cambia el piso (desde el mapa o desde el formulario). La ref
+  // guarda el piso vigente para que, al recrear el mapa (expandir/reducir), arranque
+  // con el mismo plano.
+  useEffect(() => {
+    pisoRef.current = pisoVisible;
+    capaBaseRef.current?.cambiarPiso(pisoVisible);
+  }, [pisoVisible]);
 
   function aplicarCoordenadas() {
     const latitudNormalizada = latitudVisible.trim();
@@ -166,6 +190,8 @@ export function LocationPicker({
           {expandido ? "Reducir mapa" : "Expandir mapa"}
         </button>
       </div>
+
+      <SelectorPiso piso={pisoVisible} onPisoChange={cambiarPiso} />
 
       <div
         ref={contenedorRef}

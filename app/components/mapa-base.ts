@@ -9,6 +9,7 @@
 // nodos coinciden sin conversiones. Para el plano final, se reemplaza el
 // archivo y los límites de PLANTA_BAJA (ver docs/CALIBRACION_PLANO.md).
 import L from "leaflet";
+import { PISO_PLANTA_BAJA, PLANOS_POR_PISO } from "@/lib/pisos";
 
 export const CENTRO_CAMPUS: [number, number] = [22.323777, -97.880432];
 
@@ -17,7 +18,6 @@ type Limites = [[number, number], [number, number]];
 // Planta baja (primera parte). `limites` = [[sur, oeste], [norte, este]] de TODO
 // el SVG, calculados con 4 puntos de control (ver docs/CALIBRACION_PLANO.md).
 export const PLANTA_BAJA = {
-  url: "/mapas/planta-baja.svg",
   limites: [
     [22.3232386, -97.8810681],
     [22.3255536, -97.8785584],
@@ -37,24 +37,8 @@ export const LIMITES_CAMPUS: Limites = [
   [PLANTA_BAJA.limites[1][0] + MARGEN_LIMITES, PLANTA_BAJA.limites[1][1] + MARGEN_LIMITES],
 ];
 
-// Planos por piso. La clave es `nodos.piso` (planta baja = piso 1). Los planos de
-// todos los pisos salen del mismo marco de AutoCAD (mismas 4 esquinas A-D), así que
-// comparten `PLANTA_BAJA.limites` y no necesitan calibración propia. Los archivos
-// se llaman como el piso: piso-2.svg = piso 2, etc. (la planta baja es
-// planta-baja.svg). Si la convención cambia, basta con mover las claves de la tabla.
-export const PISO_PLANTA_BAJA = 1;
-
-export const PLANOS_POR_PISO: Record<number, { url: string; etiqueta: string }> = {
-  1: { url: PLANTA_BAJA.url, etiqueta: "Piso 1" },
-  2: { url: "/mapas/piso-2.svg", etiqueta: "Piso 2" },
-  3: { url: "/mapas/piso-3.svg", etiqueta: "Piso 3" },
-  4: { url: "/mapas/piso-4.svg", etiqueta: "Piso 4" },
-};
-
-// Texto corto de un piso para botones y etiquetas.
-export function etiquetaPiso(piso: number): string {
-  return PLANOS_POR_PISO[piso]?.etiqueta ?? `Piso ${piso}`;
-}
+// Planos por piso (tabla en `lib/pisos.ts`; comparten `PLANTA_BAJA.limites`).
+export { PISO_PLANTA_BAJA, PLANOS_POR_PISO, etiquetaPiso } from "@/lib/pisos";
 
 export type CapaBase = {
   // Muestra el plano del piso indicado (y quita el anterior). `null` o un piso sin
