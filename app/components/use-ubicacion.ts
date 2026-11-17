@@ -5,7 +5,7 @@
 // con el primer componente que lo usa y se detiene cuando ya no hay ninguno.
 // La ubicación nunca sale del navegador salvo al pedir una ruta desde ella.
 import { useSyncExternalStore } from "react";
-import { estadoDesdeError, estadoInicial, type EstadoUbicacion } from "@/lib/ubicacion";
+import { estadoDesdeError, estadoInicial, suavizar, type EstadoUbicacion } from "@/lib/ubicacion";
 
 const PIDIENDO: EstadoUbicacion = { estado: "pidiendo" };
 
@@ -30,15 +30,17 @@ function iniciar() {
     return;
   }
   idSeguimiento = navigator.geolocation.watchPosition(
+    // Cada lectura se mezcla con la anterior para que el punto no brinque
+    // estando quieto (lib/ubicacion.ts, `suavizar`).
     (posicion) =>
       publicar({
         estado: "ok",
-        lectura: {
+        lectura: suavizar(actual.estado === "ok" ? actual.lectura : null, {
           lat: posicion.coords.latitude,
           lng: posicion.coords.longitude,
           precision: posicion.coords.accuracy,
           fecha: posicion.timestamp,
-        },
+        }),
       }),
     // Un tiempo agotado no borra una lectura buena que ya se tenía: el
     // seguimiento continúa y la siguiente lectura la actualiza.

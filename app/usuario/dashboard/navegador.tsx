@@ -8,6 +8,7 @@ import { ALTURA_PANEL_MINIMO, PanelDeslizable, type EstadoPanel } from "@/app/co
 import { buscarDestinos } from "@/lib/busqueda";
 import { calcularRuta, calcularRutaDesdeUbicacion, type ResultadoRuta } from "@/lib/rutas/actions";
 import { puntosDeRuta } from "@/lib/rutas/mapa";
+import { ajustarARuta } from "@/lib/rutas/ajuste";
 import { useEscritorio } from "@/app/components/use-escritorio";
 import { useUbicacion } from "@/app/components/use-ubicacion";
 import { lecturaUtil, mensajeUbicacion } from "@/lib/ubicacion";
@@ -113,6 +114,15 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
     [ruta],
   );
 
+  // Con una ruta abierta, el punto azul se dibuja pegado al tramo más cercano de
+  // la ruta (si está cerca). Solo cambia el dibujo: "Mi ubicación" y el cálculo
+  // de rutas usan la lectura suavizada sin pegar.
+  const ubicacionMapa = useMemo(() => {
+    if (!lectura || puntos.length < 2) return lectura;
+    const ajustada = ajustarARuta(lectura, puntos);
+    return ajustada.ajustada ? { ...lectura, lat: ajustada.lat, lng: ajustada.lng } : lectura;
+  }, [lectura, puntos]);
+
   const gruposOrigen = useMemo(() => agruparOrigenes(entradas, destinos), [entradas, destinos]);
   // Origen efectivo: si se eligió "Mi ubicación" (o no se eligió nada) y no hay
   // lectura, se cae a la primera entrada sin perder la elección.
@@ -203,7 +213,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
         {/* Móvil: la barra queda arriba y el panel abajo. Escritorio: ambos son tarjetas a la izquierda. */}
         <MapaLeafletRuta
           puntos={puntos}
-          ubicacion={lectura}
+          ubicacion={ubicacionMapa}
           className="h-full w-full"
           margenSuperior={escritorio ? 0 : MARGEN_SUPERIOR_MAPA}
           margenInferior={!escritorio && destino ? ALTURA_PANEL_MINIMO : 0}

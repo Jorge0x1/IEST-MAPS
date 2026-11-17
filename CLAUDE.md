@@ -77,6 +77,12 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
   más cercano del piso 1 (`lib/rutas/cercano.ts`: precisión ≤ 50 m, nodo a ≤ 150 m).
   La ubicación nunca se guarda ni se loguea. La lista de puntos de partida se conserva
   siempre como alternativa. Geolocation solo funciona en https (Vercel o localhost).
+  Cada lectura se suaviza (`suavizar`: promedio ponderado por precisión, 30 s de
+  vigencia, peso mínimo 0.2). Con ruta abierta, el punto azul se dibuja pegado al tramo
+  más cercano de la ruta en piso 1 si está a ≤ min(10, max(precisión, 5)) m
+  (`ajustarARuta`); solo cambia el dibujo, no el cálculo de rutas.
+- **Calibración del plano (14/11/2026):** 5 pines satelitales caen a 2–5 m de su lugar
+  en el plano; el error visto en campo es sobre todo del GPS. No se movió el plano.
 - **Pathfinding:** Dijkstra con montículo binario, en el servidor y en TypeScript (no
   PL/pgSQL). Función pura en `lib/rutas/dijkstra.ts` (probada con `npm test`); punto de
   entrada único en `lib/rutas/actions.ts` (`calcularRuta`, `calcularRutaDeVisita`).

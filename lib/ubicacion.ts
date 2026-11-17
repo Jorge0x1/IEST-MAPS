@@ -2,7 +2,41 @@
 // Funciones puras (sin React ni `window`) para poder probarlas con `npm test`;
 // el hook `app/components/use-ubicacion.ts` las usa con la API real.
 
+import { distanciaMetros } from "./geo.ts";
+
 export type Lectura = { lat: number; lng: number; precision: number; fecha: number };
+
+// Suavizado: una lectura anterior más vieja que esto ya no se mezcla.
+export const VIGENCIA_LECTURA_MS = 30000;
+// Lo mínimo que se mueve el punto hacia cada lectura nueva (nunca se congela).
+export const PESO_MINIMO = 0.2;
+// Un salto mayor a FACTOR_SALTO × (suma de precisiones) es movimiento real.
+const FACTOR_SALTO = 2;
+
+// Mezcla la lectura nueva con la anterior según su precisión (la más confiable
+// pesa más) para que el punto no brinque estando quieto. La precisión y la fecha
+// son las de la lectura nueva: no se presume más exactitud de la que da el GPS.
+export function suavizar(anterior: Lectura | null, nueva: Lectura): Lectura {
+  if (!anterior) return nueva;
+  const edad = nueva.fecha - anterior.fecha;
+  // Una lectura repetida o de caché (misma fecha o anterior) no aporta nada y
+  // haría brincar el punto de vuelta a una posición cruda o más vieja.
+  if (edad <= 0) return anterior;
+  if (edad > VIGENCIA_LECTURA_MS) return nueva;
+  if (anterior.precision <= 0 || nueva.precision <= 0) return nueva;
+  const salto = distanciaMetros(anterior.lat, anterior.lng, nueva.lat, nueva.lng);
+  if (salto > FACTOR_SALTO * (anterior.precision + nueva.precision)) return nueva;
+
+  const confianzaNueva = 1 / nueva.precision ** 2;
+  const confianzaAnterior = 1 / anterior.precision ** 2;
+  const peso = Math.max(PESO_MINIMO, confianzaNueva / (confianzaNueva + confianzaAnterior));
+  return {
+    lat: anterior.lat + peso * (nueva.lat - anterior.lat),
+    lng: anterior.lng + peso * (nueva.lng - anterior.lng),
+    precision: nueva.precision,
+    fecha: nueva.fecha,
+  };
+}
 
 // Lecturas con un margen de error mayor no sirven para elegir un pasillo. Lo
 // usan el servidor (lib/rutas/cercano.ts) y la vista del alumno, para no

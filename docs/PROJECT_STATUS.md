@@ -268,6 +268,9 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 - [x] Definir límites de precisión y estados cuando el GPS no esté disponible: precisión
   máxima 50 m, nodo más cercano a máximo 150 m (`lib/rutas/cercano.ts`, ajustar con
   pruebas en campo); sin permiso, sin señal o sin https se usa la lista de siempre.
+- [x] Suavizado de lecturas (`suavizar`, `lib/ubicacion.ts`) y punto azul pegado al
+  tramo más cercano de la ruta abierta, piso 1, ≤ 10 m (`ajustarARuta`,
+  `lib/rutas/ajuste.ts`). Diseño: `docs/superpowers/specs/2026-11-14-gps-suavizado-y-ajuste-design.md`.
 - [ ] Fase 2 del GPS: seguir la ruta en vivo y dar indicaciones mientras se camina.
 - [ ] Terminar y limpiar el SVG del campus.
 - [ ] Dividir o preparar planos por edificio/piso según el formato final.
