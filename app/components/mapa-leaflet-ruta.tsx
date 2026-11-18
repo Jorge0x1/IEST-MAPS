@@ -60,6 +60,11 @@ type Props = {
   // Última lectura GPS del alumno. Se muestra en cualquier piso (el GPS no
   // sabe en cuál está la persona).
   ubicacion?: Lectura | null;
+  // Navegación en vivo: centra el mapa en `ubicacion` con cada lectura hasta que
+  // el usuario arrastre el mapa; "centrar en mí" lo reactiva.
+  seguir?: boolean;
+  // Si no es null, es el piso que se ve (el de la navegación) y se oculta el selector.
+  pisoForzado?: number | null;
 };
 
 export default function MapaLeafletRuta({
@@ -70,6 +75,8 @@ export default function MapaLeafletRuta({
   margenIzquierdo = 0,
   controlesZoom = true,
   ubicacion = null,
+  seguir = false,
+  pisoForzado = null,
 }: Props) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
@@ -81,6 +88,13 @@ export default function MapaLeafletRuta({
   useEffect(() => {
     ubicacionRef.current = ubicacion;
   }, [ubicacion]);
+  // Mientras se navega, el mapa sigue al usuario salvo que lo haya arrastrado.
+  const seguirRef = useRef(seguir);
+  const siguiendoRef = useRef(true);
+  useEffect(() => {
+    seguirRef.current = seguir;
+    if (seguir) siguiendoRef.current = true;
+  }, [seguir]);
 
   // Pisos por los que pasa la ruta (en orden de recorrido). El mapa muestra un
   // piso a la vez: su plano y solo los puntos de la ruta que caen en él. La
@@ -89,7 +103,8 @@ export default function MapaLeafletRuta({
   const pisos = useMemo(() => [...new Set(puntos.map((p) => p.piso))], [puntos]);
   const [elegido, setElegido] = useState<{ puntos: PuntoMapa[]; piso: number } | null>(null);
   const pisoActivo =
-    elegido && elegido.puntos === puntos && pisos.includes(elegido.piso) ? elegido.piso : (pisos[0] ?? PISO_PLANTA_BAJA);
+    pisoForzado ??
+    (elegido && elegido.puntos === puntos && pisos.includes(elegido.piso) ? elegido.piso : (pisos[0] ?? PISO_PLANTA_BAJA));
   // Los márgenes se leen al encuadrar, pero cambiarlos no debe re-encuadrar.
   const margenesRef = useRef({ margenInferior, margenSuperior, margenIzquierdo });
   // Se declara antes que el efecto de la ruta para que ya esté actualizado.
@@ -121,6 +136,9 @@ export default function MapaLeafletRuta({
     panelUbicacion.style.zIndex = "620";
     panelUbicacion.style.pointerEvents = "none";
     capaUbicacionRef.current = L.layerGroup().addTo(mapa);
+    mapa.on("dragstart", () => {
+      siguiendoRef.current = false;
+    });
     // El zoom mínimo es el que hace caber justo los límites en la pantalla:
     // depende del tamaño del contenedor, así que se recalcula al redimensionar.
     const ajustarZoomMinimo = () => {
@@ -154,7 +172,7 @@ export default function MapaLeafletRuta({
   // Leaflet arriba a la derecha, bajo la barra de búsqueda si la hay.
   useEffect(() => {
     const mapa = mapaRef.current;
-    if (!mapa || pisos.length < 2) return;
+    if (!mapa || pisos.length < 2 || pisoForzado !== null) return;
     const control = new L.Control({ position: "topright" });
     control.onAdd = () => {
       const caja = L.DomUtil.create("div", "");
@@ -183,7 +201,7 @@ export default function MapaLeafletRuta({
     return () => {
       control.remove();
     };
-  }, [pisos, pisoActivo, puntos]);
+  }, [pisos, pisoActivo, puntos, pisoForzado]);
 
   useEffect(() => {
     const mapa = mapaRef.current;
@@ -222,6 +240,10 @@ export default function MapaLeafletRuta({
     })
       .bindTooltip("Tú estás aquí", { direction: "top", offset: [0, -8] })
       .addTo(capa);
+    const mapa = mapaRef.current;
+    if (mapa && seguirRef.current && siguiendoRef.current) {
+      mapa.setView(centro, Math.max(mapa.getZoom(), 19), { animate: true });
+    }
   }, [ubicacion]);
 
   // Botón "centrar en mí" (abajo a la derecha), solo cuando hay ubicación. Se
@@ -245,6 +267,7 @@ export default function MapaLeafletRuta({
       L.DomEvent.disableClickPropagation(boton);
       L.DomEvent.on(boton, "click", () => {
         const actual = ubicacionRef.current;
+        siguiendoRef.current = true;
         if (actual) mapa.setView([actual.lat, actual.lng], Math.max(mapa.getZoom(), 19));
       });
       return boton;
@@ -263,8 +286,10 @@ export default function MapaLeafletRuta({
     capa.clearLayers();
     // Solo se dibuja el tramo de la ruta que está en el piso activo.
     const visibles = puntos.filter((p) => p.piso === pisoActivo);
+    // Navegando, el encuadre lo manda la ubicación (no se re-encuadra la ruta).
+    const siguiendo = seguirRef.current && siguiendoRef.current && ubicacionRef.current !== null;
     if (visibles.length === 0) {
-      mapa.setView(CENTRO_CAMPUS, 18);
+      if (!siguiendo) mapa.setView(CENTRO_CAMPUS, 18);
       return;
     }
 
@@ -283,6 +308,7 @@ export default function MapaLeafletRuta({
     }
 
     const { margenInferior: abajo, margenSuperior: arriba, margenIzquierdo: izquierda } = margenesRef.current;
+    if (siguiendo) return;
     if (coordenadas.length === 1) {
       mapa.setView(coordenadas[0], 19);
     } else {

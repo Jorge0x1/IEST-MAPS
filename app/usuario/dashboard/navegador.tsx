@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
 import { ETIQUETA_TIPO, ListaPasos, contarPasos } from "@/app/components/pasos-ruta";
 import { DetalleDestino } from "@/app/components/detalle-destino";
 import { ALTURA_PANEL_MINIMO, PanelDeslizable, type EstadoPanel } from "@/app/components/panel-deslizable";
@@ -11,6 +11,9 @@ import { puntosDeRuta } from "@/lib/rutas/mapa";
 import { ajustarARuta } from "@/lib/rutas/ajuste";
 import { useEscritorio } from "@/app/components/use-escritorio";
 import { useUbicacion } from "@/app/components/use-ubicacion";
+import { useAvisos } from "@/app/components/use-avisos";
+import type { PasoRutaDetallado } from "@/lib/rutas/actions";
+import { ModoNavegacion } from "./modo-navegacion";
 import { lecturaUtil, mensajeUbicacion } from "@/lib/ubicacion";
 import { MenuCuenta } from "./menu-cuenta";
 
@@ -44,6 +47,9 @@ const ORIGEN_GPS = "gps";
 const MARGEN_SUPERIOR_MAPA = 72;
 // Ancho de la columna de tarjetas en escritorio (368 px + 16 px de separación).
 const ANCHO_COLUMNA_ESCRITORIO = 384;
+// Alto aproximado del banner de indicación y de la barra inferior al navegar.
+const MARGEN_SUPERIOR_NAVEGACION = 120;
+const MARGEN_INFERIOR_NAVEGACION = 90;
 
 function lugar(edificio: string | null, piso: number) {
   return [edificio, `Piso ${piso}`].filter(Boolean).join(" · ");
@@ -102,6 +108,10 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   const escritorio = useEscritorio();
   // Solo se muestra la respuesta de la última solicitud, aunque lleguen desordenadas.
   const solicitud = useRef(0);
+  // Navegación en vivo (GPS fase 2) y piso que muestra el mapa mientras tanto.
+  const [navegando, setNavegando] = useState(false);
+  const [pisoNavegacion, setPisoNavegacion] = useState<number | null>(null);
+  const avisos = useAvisos();
 
   const consultaDiferida = useDeferredValue(consulta);
   const resultados = useMemo(
@@ -138,6 +148,29 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   );
   const mismoPunto = destino !== null && !usandoGps && destino.id === origenId;
 
+  function empezarACaminar() {
+    avisos.desbloquear();
+    setNavegando(true);
+  }
+
+  const salirDeNavegacion = useCallback(() => {
+    setNavegando(false);
+    setPisoNavegacion(null);
+  }, []);
+
+  const terminarNavegacion = useCallback(() => {
+    setNavegando(false);
+    setPisoNavegacion(null);
+    setEstadoPanel("medio");
+  }, []);
+
+  // El recálculo de la navegación trae pasos nuevos: el mapa y el punto pegado
+  // a la ruta usan la ruta nueva.
+  const actualizarPasos = useCallback((pasos: PasoRutaDetallado[]) => {
+    solicitud.current++;
+    setRuta((actual) => (actual?.ok ? { ...actual, pasos } : actual));
+  }, []);
+
   function elegirDestino(d: DestinoAlumno) {
     solicitud.current++;
     setDestino(d);
@@ -148,6 +181,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
 
   function volverABuscar() {
     solicitud.current++;
+    salirDeNavegacion();
     setDestino(null);
     setRuta(null);
   }
@@ -155,6 +189,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   // Vuelve a las opciones (punto de partida, escaleras) sin perder el destino elegido.
   function editarRuta() {
     solicitud.current++;
+    salirDeNavegacion();
     setRuta(null);
     setEstadoPanel("medio");
   }
@@ -162,12 +197,14 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   // Cambiar una opción invalida la ruta mostrada: se vuelve a pedir con el botón.
   function cambiarOrigen(id: string) {
     solicitud.current++;
+    salirDeNavegacion();
     setOrigenElegido(id);
     setRuta(null);
   }
 
   function cambiarEscaleras(valor: boolean) {
     solicitud.current++;
+    salirDeNavegacion();
     setEvitarEscaleras(valor);
     setRuta(null);
   }
@@ -205,6 +242,7 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
   }
 
   const hayBusqueda = !destino && consultaDiferida.trim() !== "";
+  const enNavegacion = navegando && destino !== null && ruta?.ok === true;
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-slate-100">
@@ -215,13 +253,31 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
           puntos={puntos}
           ubicacion={ubicacionMapa}
           className="h-full w-full"
-          margenSuperior={escritorio ? 0 : MARGEN_SUPERIOR_MAPA}
-          margenInferior={!escritorio && destino ? ALTURA_PANEL_MINIMO : 0}
-          margenIzquierdo={escritorio && destino ? ANCHO_COLUMNA_ESCRITORIO : 0}
+          margenSuperior={enNavegacion ? MARGEN_SUPERIOR_NAVEGACION : escritorio ? 0 : MARGEN_SUPERIOR_MAPA}
+          margenInferior={enNavegacion ? MARGEN_INFERIOR_NAVEGACION : !escritorio && destino ? ALTURA_PANEL_MINIMO : 0}
+          margenIzquierdo={escritorio && destino && !enNavegacion ? ANCHO_COLUMNA_ESCRITORIO : 0}
           controlesZoom={escritorio}
+          seguir={enNavegacion}
+          pisoForzado={enNavegacion ? pisoNavegacion : null}
         />
       </div>
 
+      {enNavegacion && destino && ruta?.ok ? (
+        <ModoNavegacion
+          pasos={ruta.pasos}
+          destinoId={destino.id}
+          evitarEscaleras={evitarEscaleras}
+          avisos={avisos}
+          onRutaNueva={actualizarPasos}
+          onPiso={setPisoNavegacion}
+          onSalir={salirDeNavegacion}
+          onLlegada={terminarNavegacion}
+        />
+      ) : null}
+
+      {/* Navegando, la barra de búsqueda y el panel dejan su lugar al modo navegación. */}
+      {enNavegacion ? null : (
+      <>
       {/* Barra de búsqueda flotante */}
       <div className="absolute inset-x-3 top-3 z-30 mx-auto max-w-xl md:inset-x-auto md:left-4 md:top-4 md:mx-0 md:w-[368px]">
         <div className="flex items-center gap-2 rounded-full bg-white py-1.5 pl-4 pr-1.5 shadow-lg ring-1 ring-black/5">
@@ -301,6 +357,23 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
                     : (rutaDesde ?? "el punto de partida")}
                   {evitarEscaleras ? " · sin escaleras" : ""}
                 </p>
+              ) : null}
+              {ruta?.ok ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={empezarACaminar}
+                    disabled={!gpsUtil}
+                    className="mt-3 w-full rounded-xl bg-[var(--brand-primary)] px-5 py-3 font-semibold text-white transition hover:bg-[var(--brand-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Empezar a caminar
+                  </button>
+                  {!gpsUtil ? (
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      {lectura ? `Tu ubicación es imprecisa (±${Math.round(lectura.precision)} m) para seguirte.` : mensajeUbicacion(ubicacion)}
+                    </p>
+                  ) : null}
+                </>
               ) : (usandoGps || origen) && !mismoPunto ? (
                 <button
                   type="button"
@@ -399,6 +472,8 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
           )}
         </PanelDeslizable>
       ) : null}
+      </>
+      )}
     </main>
   );
 }

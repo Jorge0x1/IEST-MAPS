@@ -50,7 +50,8 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
 - Puede salir desde "Mi ubicación" (GPS) o elegir de la lista; ve su posición en el mapa.
 - Ve el mapa a pantalla completa con panel deslizable (móvil) o panel lateral (escritorio),
   la ficha del destino con descripción y foto, y un selector de piso (1 a 4).
-- Pendiente: navegación en vivo siguiendo el GPS (fase 2).
+- Navegación en vivo ("Empezar a caminar"): indicación con metros y giro, aviso con sonido y
+  vibración, recálculo si se desvía, ventana de cambio de piso y avance manual en pisos 2 a 4.
 
 ### Visitante
 
@@ -289,7 +290,13 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 - [x] Suavizado de lecturas (`suavizar`, `lib/ubicacion.ts`) y punto azul pegado al
   tramo más cercano de la ruta abierta, piso 1, ≤ 10 m (`ajustarARuta`,
   `lib/rutas/ajuste.ts`). Diseño: `docs/superpowers/specs/2026-11-14-gps-suavizado-y-ajuste-design.md`.
-- [ ] Fase 2 del GPS: seguir la ruta en vivo y dar indicaciones mientras se camina.
+- [x] Fase 2 del GPS: seguir la ruta en vivo y dar indicaciones mientras se camina
+  (`lib/rutas/seguimiento.ts`, `lib/rutas/navegacion.ts`, `app/usuario/dashboard/modo-navegacion.tsx`).
+  Diseño: `docs/superpowers/specs/2026-11-17-gps-seguimiento-en-vivo-design.md`.
+- [ ] Probar la navegación en campo y ajustar sus umbrales (giro 35°, desvío 20 m o 2× precisión,
+  3 lecturas, 15 s entre recálculos, preaviso 15 m, piso 8 m, llegada 10 m).
+- [ ] Indicaciones por voz durante la navegación.
+- [ ] Navegación en vivo también para el visitante.
 - [ ] Terminar y limpiar el SVG del campus (faltan elementos del plano).
 - [x] Preparar planos por piso (`planta-baja.svg`, `piso-2.svg` a `piso-4.svg`).
 - [x] Georreferenciar los planos (4 puntos de control, error ≤ 0.4 m en planta baja).
@@ -297,7 +304,7 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 - [x] Cambiar la capa visible por piso (selector en el mapa de rutas).
 - [ ] Registrar en el admin los edificios, salones y pasillos reales (guía:
   `docs/REGISTRO_PLANTA_BAJA.md`) y repetirlo en los pisos 2 a 4.
-- [ ] Pedir confirmación manual al completar una transición de piso.
+- [x] Pedir confirmación manual al completar una transición de piso (ventana "¿Ya subiste?").
 - [ ] Ajustar el punto azul a la ruta también en pisos 2 a 4 (hoy solo piso 1).
 
 ### 6. Catálogos administrativos restantes
@@ -327,9 +334,8 @@ El orden refleja la prioridad recomendada mientras el mapa SVG sigue incompleto.
 
 ## Próximo bloque recomendado
 
-1. **GPS fase 2**: seguir la ruta en vivo mientras el alumno camina (paso actual,
-   indicaciones automáticas, recalcular si se sale de la ruta). Los cambios de piso se
-   confirman manualmente.
+1. **Prueba en campo de la navegación en vivo** y ajuste de umbrales (lista al final del
+   diseño `2026-11-17-gps-seguimiento-en-vivo-design.md`).
 2. **Datos del grafo**: terminar de trazar pasillos y registrar salones en los pisos 1 a 4,
    y conectar escaleras y elevadores entre pisos. Sin esto no se pueden probar rutas
    completas entre pisos.
