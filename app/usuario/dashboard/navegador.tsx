@@ -266,12 +266,15 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
         <ModoNavegacion
           pasos={ruta.pasos}
           destinoId={destino.id}
+          destinoNombre={destino.nombre}
+          destinoLugar={lugar(destino.edificioNombre, destino.piso)}
           evitarEscaleras={evitarEscaleras}
           avisos={avisos}
           onRutaNueva={actualizarPasos}
           onPiso={setPisoNavegacion}
           onSalir={salirDeNavegacion}
-          onLlegada={terminarNavegacion}
+          onListo={terminarNavegacion}
+          onBuscarOtro={volverABuscar}
         />
       ) : null}
 

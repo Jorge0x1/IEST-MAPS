@@ -29,7 +29,11 @@ export const LECTURAS_SALTO = 2;
 export const PAUSA_RECALCULO_MS = 15000;
 export const PREAVISO_GIRO_M = 15;
 export const PREGUNTA_PISO_M = 8;
-export const LLEGADA_M = 10;
+// Se llega cuando faltan ≤ LLEGADA_M m del final de la ruta.
+export const LLEGADA_M = 5;
+// El GPS del teléfono se desvía unos metros: en el último tramo, a ≤ YA_LLEGUE_CERCA_M m
+// del final se ofrece "Ya llegué" para que nadie se quede sin poder terminar.
+export const YA_LLEGUE_CERCA_M = 25;
 // Si la siguiente maniobra está más lejos, la indicación es "Sigue recto".
 export const SIGUE_RECTO_M = 50;
 // Una maniobra recién pasada sigue siendo la actual unos metros (el GPS se atrasa).
@@ -107,6 +111,12 @@ export function esManual(e: EstadoNavegacion): boolean {
 
 export function pisoActual(e: EstadoNavegacion): number {
   return tramoActual(e).piso;
+}
+
+export function puedeDeclararLlegada(e: EstadoNavegacion): boolean {
+  if (e.fase !== "caminando" || hayTramoSiguiente(e)) return false;
+  const t = tramoActual(e);
+  return t.linea !== null && t.largo - e.metros <= YA_LLEGUE_CERCA_M;
 }
 
 function hayTramoSiguiente(e: EstadoNavegacion): boolean {

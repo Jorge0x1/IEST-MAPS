@@ -18,6 +18,7 @@ import {
   metrosRestantes,
   pisoActual,
   preguntaPiso,
+  puedeDeclararLlegada,
   textoIndicacion,
   type AccionNavegacion,
   type Efecto,
@@ -27,6 +28,7 @@ import {
 import type { Lectura } from "@/lib/ubicacion";
 import { useUbicacion } from "@/app/components/use-ubicacion";
 import { usePantallaEncendida, type useAvisos } from "@/app/components/use-avisos";
+import { TarjetaLlegada } from "./tarjeta-llegada";
 
 type Avisos = ReturnType<typeof useAvisos>;
 
@@ -51,21 +53,27 @@ function aplicar(nav: Nav, accion: AccionNavegacion): Nav {
 export function ModoNavegacion({
   pasos,
   destinoId,
+  destinoNombre,
+  destinoLugar,
   evitarEscaleras,
   avisos,
   onRutaNueva,
   onPiso,
   onSalir,
-  onLlegada,
+  onListo,
+  onBuscarOtro,
 }: {
   pasos: PasoRutaDetallado[];
   destinoId: string;
+  destinoNombre: string;
+  destinoLugar: string;
   evitarEscaleras: boolean;
   avisos: Avisos;
   onRutaNueva: (pasos: PasoRutaDetallado[]) => void;
   onPiso: (piso: number) => void;
   onSalir: () => void;
-  onLlegada: () => void;
+  onListo: () => void;
+  onBuscarOtro: () => void;
 }) {
   const ubicacion = useUbicacion();
   const lectura = ubicacion.estado === "ok" ? ubicacion.lectura : null;
@@ -139,10 +147,8 @@ export function ModoNavegacion({
     onPiso(piso);
   }, [piso, onPiso]);
 
+  // Al llegar no se sale sola de la navegación: la tarjeta espera a que la persona toque un botón.
   const llego = estado.fase === "llegada";
-  useEffect(() => {
-    if (llego) onLlegada();
-  }, [llego, onLlegada]);
 
   usePantallaEncendida(true);
 
@@ -157,6 +163,11 @@ export function ModoNavegacion({
   const sinSenal = ubicacion.estado !== "ok";
   const avanceAMano = manual || sinSenal || estado.gpsImpreciso;
   const ultimaManiobra = !manual && indicacion.maniobra === "llegada";
+  const cercaDelFinal = puedeDeclararLlegada(estado);
+
+  if (llego) {
+    return <TarjetaLlegada destino={destinoNombre} lugar={destinoLugar} onListo={onListo} onBuscarOtro={onBuscarOtro} />;
+  }
 
   return (
     <>
@@ -199,13 +210,13 @@ export function ModoNavegacion({
           >
             <IconoSonido silencio={avisos.silencio} />
           </button>
-          {avanceAMano && estado.fase === "caminando" ? (
+          {(avanceAMano || cercaDelFinal) && estado.fase === "caminando" ? (
             <button
               type="button"
               onClick={() => despachar({ tipo: "siguiente" })}
               className="shrink-0 rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 font-semibold text-white hover:bg-[var(--brand-primary-hover)]"
             >
-              {ultimaManual || ultimaManiobra ? "Ya llegué" : "Siguiente"}
+              {ultimaManual || ultimaManiobra || cercaDelFinal ? "Ya llegué" : "Siguiente"}
             </button>
           ) : null}
           <button type="button" onClick={onSalir} className="shrink-0 rounded-xl border border-[var(--border-strong)] px-4 py-2.5 font-semibold text-slate-700 hover:bg-slate-50">

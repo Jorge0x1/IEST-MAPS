@@ -9,6 +9,7 @@ import {
   metrosRestantes,
   PAUSA_RECALCULO_MS,
   pisoActual,
+  puedeDeclararLlegada,
   preguntaPiso,
   textoIndicacion,
   type AccionNavegacion,
@@ -272,5 +273,52 @@ describe("textoIndicacion", () => {
     assert.equal(textoIndicacion({ ...llegada, metros: 20 }).titulo, "En 20 m llegas a Salón 204");
     assert.equal(textoIndicacion({ ...llegada, metros: 2, ahora: true }).titulo, "Llegaste a Salón 204");
     assert.equal(textoIndicacion({ ...llegada, metros: null }).titulo, "Llega a Salón 204");
+  });
+});
+
+describe("llegada a 5 m", () => {
+  it("no llega a 8 m del final", () => {
+    const r = aplicar(iniciarNavegacion(rutaL()), [...caminar([[0, 0], [60, 0], [60, 22]])]);
+    assert.equal(r.estado.fase, "caminando");
+  });
+
+  it("llega a 4 m del final con un solo aviso", () => {
+    const r = aplicar(iniciarNavegacion(rutaL()), [...caminar([[0, 0], [60, 0], [60, 22]]), lectura(60, 26)]);
+    assert.equal(r.estado.fase, "llegada");
+    assert.equal(clases(r.efectos).filter((c) => c === "llegada").length, 1);
+  });
+
+  it("las lecturas posteriores no repiten el aviso ni cambian la fase", () => {
+    const llego = aplicar(iniciarNavegacion(rutaL()), [...caminar([[0, 0], [60, 0], [60, 22]]), lectura(60, 26)]).estado;
+    const r = aplicar(llego, [lectura(60, 30), lectura(60, 10), lectura(0, 0)]);
+    assert.equal(r.estado.fase, "llegada");
+    assert.deepEqual(r.efectos, []);
+  });
+
+  it("un tramo final de 3 m llega en la primera lectura", () => {
+    const r = aplicar(iniciarNavegacion(camino([[0, 0], [3, 0]])), [lectura(1, 0)]);
+    assert.equal(r.estado.fase, "llegada");
+  });
+});
+
+describe("puedeDeclararLlegada", () => {
+  it("es falso lejos del final, verdadero a 25 m o menos y falso al llegar", () => {
+    const lejos = aplicar(iniciarNavegacion(rutaL()), [lectura(40, 0)]).estado;
+    assert.equal(puedeDeclararLlegada(lejos), false);
+    const cerca = aplicar(iniciarNavegacion(rutaL()), [...caminar([[0, 0], [60, 0], [60, 10]])]).estado;
+    assert.equal(puedeDeclararLlegada(cerca), true);
+    const llego = aplicar(cerca, [lectura(60, 28)]).estado;
+    assert.equal(llego.fase, "llegada");
+    assert.equal(puedeDeclararLlegada(llego), false);
+  });
+
+  it("es falso mientras queda otro tramo (cambio de piso)", () => {
+    const e = aplicar(iniciarNavegacion(rutaConPiso("escalera")), caminar([[0, 0], [20, 0]])).estado;
+    assert.equal(puedeDeclararLlegada(e), false);
+  });
+
+  it("es falso en un tramo manual (sin línea GPS)", () => {
+    const sinGps = [paso(null, null), paso(null, null, { nombre: "Salón 1", tipo: "salon" })];
+    assert.equal(puedeDeclararLlegada(iniciarNavegacion(sinGps)), false);
   });
 });

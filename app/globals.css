@@ -76,3 +76,35 @@ textarea {
   background: var(--brand-primary-soft);
   color: var(--text-primary);
 }
+
+/* Tarjeta de llegada: el pin cae y el halo pulsa. Sin movimiento si el sistema lo pide. */
+@media (prefers-reduced-motion: no-preference) {
+  .llegada-pin {
+    animation: llegada-caida 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+  .llegada-pulso {
+    animation: llegada-pulso 1.8s ease-out 0.5s infinite;
+  }
+}
+
+@keyframes llegada-caida {
+  from {
+    transform: translateY(-48px) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes llegada-pulso {
+  from {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
