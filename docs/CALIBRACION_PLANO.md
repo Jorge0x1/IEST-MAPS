@@ -61,6 +61,12 @@ límites.
 - `PLANTA_BAJA.opacidad` está en 1. Al calibrar un plano nuevo conviene bajarlo
   temporalmente (p. ej. 0.7) para comparar con las calles de OSM, y volver a 1.
 - Paleta: AutoCAD usa colores oscuros pensados para imprimir; `PALETA` en
-  `scripts/preparar-plano.py` los cambia por tonos claros (suelo, edificios, verde,
-  estacionamiento, contornos) para que resalten la ruta y los marcadores. Con
-  `PALETA = {}` se conservan los colores originales.
+  `scripts/preparar-plano.py` los cambia por la paleta cálida (suelo crema `#fbf7f2`,
+  edificios durazno `#ffe9d9`, verde `#6cc45a`, estacionamiento `#e2e5ec`, vidrio
+  `#9dd8f2`, contornos `#c9a58a`), que combina con el blanco/naranja de la app sin
+  tapar la ruta naranja. Con `PALETA = {}` se conservan los colores originales.
+- Estilo final: después de `preparar-plano.py`, correr
+  `python3 scripts/estilo-plano.py public/mapas/*.svg`. Recolorea planos con la paleta
+  anterior y dibuja la cancha de fútbol (franjas, líneas y porterías) en la planta
+  baja; las esquinas del campo están en `CAMPO`. Se puede correr varias veces.
+  Pruebas: `python3 scripts/test_estilo_plano.py`.

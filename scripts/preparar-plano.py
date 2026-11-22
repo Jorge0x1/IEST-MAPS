@@ -41,13 +41,15 @@ PUNTOS_DE_CONTROL = [
 # en pantalla, con la ruta y los marcadores encima, se ven mejor tonos claros.
 # Se cambia cada color (relleno y contorno, que son iguales para tapar costuras).
 # Vacío ({}) deja los colores originales de AutoCAD.
+# Paleta cálida (nov. 2026). Después de preparar el plano, correr
+# scripts/estilo-plano.py para dibujar la cancha.
 PALETA = {
-    "#b1ab9b": "#efebe2",  # suelo / plazas y andadores
-    "#e0d3c3": "#dccbb3",  # edificios (un poco más marcados que el suelo)
-    "#5b612f": "#d3dfbb",  # áreas verdes
-    "#283239": "#d9dee4",  # estacionamiento
-    "#dbe0e0": "#e8eef3",  # vidrio / agua
-    "#000000": "#5a554c",  # contornos y muros (sin negro puro)
+    "#b1ab9b": "#fbf7f2",  # suelo / plazas y andadores
+    "#e0d3c3": "#ffe9d9",  # edificios
+    "#5b612f": "#6cc45a",  # áreas verdes
+    "#283239": "#e2e5ec",  # estacionamiento
+    "#dbe0e0": "#9dd8f2",  # vidrio / agua
+    "#000000": "#c9a58a",  # contornos y muros (sin negro puro)
 }
 
 RADIO = 6378137.0
