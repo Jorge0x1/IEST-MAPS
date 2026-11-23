@@ -70,3 +70,11 @@ límites.
   anterior y dibuja la cancha de fútbol (franjas, líneas y porterías) en la planta
   baja; las esquinas del campo están en `CAMPO`. Se puede correr varias veces.
   Pruebas: `python3 scripts/test_estilo_plano.py`.
+- Árboles y jardineras: `scripts/decoracion.json` (`arboles`: `[lat, lng]` o
+  `{"lat", "lng", "radio_m"}`; `jardineras`: `{"lat", "lng", "ancho_m", "largo_m",
+  "angulo"}`, ángulo en grados en el sentido del reloj). Las coordenadas se sacan
+  tocando el mapa en el selector de ubicación del admin. `estilo-plano.py` las
+  convierte con `LIMITES` (copia de `PLANTA_BAJA.limites`: si se recalibra el plano,
+  cambiar ambos) y las dibuja solo en la planta baja.
+- Iconos del mapa (escaleras, comida, las A…): no van en el SVG; salen de la base
+  (migración 0011, `marcadores_mapa()`) y los dibuja `MapaLeafletRuta`.

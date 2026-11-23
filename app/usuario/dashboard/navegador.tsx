@@ -16,6 +16,7 @@ import type { PasoRutaDetallado } from "@/lib/rutas/actions";
 import { ModoNavegacion } from "./modo-navegacion";
 import { lecturaUtil, mensajeUbicacion } from "@/lib/ubicacion";
 import { MenuCuenta } from "./menu-cuenta";
+import type { MarcadorMapa } from "@/lib/marcadores";
 
 // Leaflet usa `window`: solo se carga en el navegador.
 const MapaLeafletRuta = dynamic(() => import("@/app/components/mapa-leaflet-ruta"), {
@@ -89,7 +90,7 @@ function agruparOrigenes(entradas: EntradaAlumno[], destinos: DestinoAlumno[]): 
   return grupos;
 }
 
-export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: DestinoAlumno[]; entradas: EntradaAlumno[]; nombreUsuario: string }) {
+export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { destinos: DestinoAlumno[]; entradas: EntradaAlumno[]; marcadores: MarcadorMapa[]; nombreUsuario: string }) {
   const [consulta, setConsulta] = useState("");
   const [destino, setDestino] = useState<DestinoAlumno | null>(null);
   // null = el alumno no ha elegido: se usa su ubicación si hay, si no la primera entrada.
@@ -179,6 +180,12 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
     setEstadoPanel("medio");
   }
 
+  // Tocar el icono de un destino buscable en el mapa equivale a elegirlo en la búsqueda.
+  function elegirDesdeMapa(id: string) {
+    const d = destinos.find((x) => x.id === id);
+    if (d) elegirDestino(d);
+  }
+
   function volverABuscar() {
     solicitud.current++;
     salirDeNavegacion();
@@ -259,6 +266,8 @@ export function Navegador({ destinos, entradas, nombreUsuario }: { destinos: Des
           controlesZoom={escritorio}
           seguir={enNavegacion}
           pisoForzado={enNavegacion ? pisoNavegacion : null}
+          marcadores={marcadores}
+          onMarcador={enNavegacion ? undefined : elegirDesdeMapa}
         />
       </div>
 

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { finalizarMiVisita } from "./actions";
 import { VistaVisitante } from "./vista-visitante";
 import { urlFotoDestino } from "@/lib/fotos";
+import { marcadoresDeFilas, type FilaMarcador } from "@/lib/marcadores";
 import { calcularRutaDeVisita } from "@/lib/rutas/actions";
 import { createClient } from "@/utils/supabase/server";
 
@@ -50,7 +51,13 @@ export default async function VisitanteRutaPage({ searchParams }: { searchParams
     return <TarjetaCentrada titulo="Visita finalizada" texto={`Gracias por tu visita, ${visita.nombre}. Esta visita ya fue finalizada.`} />;
   }
 
-  const ruta = await calcularRutaDeVisita(token, { evitarEscaleras: sinEscaleras });
+  const [ruta, marcadoresRes] = await Promise.all([
+    calcularRutaDeVisita(token, { evitarEscaleras: sinEscaleras }),
+    // RPC pública (migración 0011): el visitante no tiene sesión de Supabase.
+    (await createClient()).rpc("marcadores_mapa"),
+  ]);
+  if (marcadoresRes.error) console.error("[visitante] No se pudieron cargar los iconos del mapa:", marcadoresRes.error.message);
+  const marcadores = marcadoresRes.error ? [] : marcadoresDeFilas(marcadoresRes.data as FilaMarcador[] | null);
   // El último paso de la ruta es el destino: de ahí salen su foto y descripción.
   const nodoDestino = ruta.ok ? ruta.pasos[ruta.pasos.length - 1] : null;
 
@@ -65,6 +72,7 @@ export default async function VisitanteRutaPage({ searchParams }: { searchParams
       motivo={visita.motivo}
       horaEntrada={new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Mexico_City" }).format(new Date(visita.hora_entrada))}
       ruta={ruta}
+      marcadores={marcadores}
       token={token}
       sinEscaleras={sinEscaleras}
       finalizar={finalizarMiVisita.bind(null, token)}

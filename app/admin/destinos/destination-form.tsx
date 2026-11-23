@@ -4,6 +4,8 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { actualizarDestino, crearDestino, type EstadoDestino } from "./actions";
 import { FotoDestinoInput } from "./foto-destino-input";
+import { IconoDestinoInput } from "./icono-destino-input";
+import { LogoDestinoInput } from "./logo-destino-input";
 import { etiquetaPiso, PISO_PLANTA_BAJA, pisoRegistrado, PISOS_REGISTRADOS } from "@/lib/pisos";
 import styles from "./destinos.module.css";
 
@@ -34,6 +36,8 @@ export type DestinoInicial = {
   buscable: boolean;
   descripcion: string | null;
   foto_path: string | null;
+  icono: string | null;
+  logo_path: string | null;
 };
 
 const tipos = [
@@ -48,6 +52,8 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
   const formRef = useRef<HTMLFormElement>(null);
   const [mapResetVersion, setMapResetVersion] = useState(0);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
+  const subiendo = subiendoFoto || subiendoLogo;
   // Un destino viejo con un piso sin plano (p. ej. 0) arranca sin piso elegido para que
   // el admin lo corrija; uno nuevo arranca en la planta baja.
   const pisoInicial = destino ? (pisoRegistrado(destino.piso) ? destino.piso : null) : PISO_PLANTA_BAJA;
@@ -149,6 +155,9 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
       {/* `key` reinicia el campo al limpiar el formulario después de crear un destino. */}
       <FotoDestinoInput key={mapResetVersion} valorInicial={destino?.foto_path ?? null} onSubiendoChange={setSubiendoFoto} />
 
+      <IconoDestinoInput key={`icono-${mapResetVersion}`} valorInicial={destino?.icono ?? null} />
+      <LogoDestinoInput key={`logo-${mapResetVersion}`} valorInicial={destino?.logo_path ?? null} onSubiendoChange={setSubiendoLogo} />
+
       <div className={styles.locationSection}>
         <div className={styles.locationPickerShell}>
           <LocationPicker
@@ -191,8 +200,8 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
         ) : (
           <span className={styles.formSpacer} />
         )}
-        <button disabled={pendiente || subiendoFoto || edificios.length === 0} className={styles.primaryButton}>
-          {pendiente ? "Guardando…" : subiendoFoto ? "Subiendo foto…" : destino ? "Guardar cambios" : "Crear destino"}
+        <button disabled={pendiente || subiendo || edificios.length === 0} className={styles.primaryButton}>
+          {pendiente ? "Guardando…" : subiendo ? "Subiendo imagen…" : destino ? "Guardar cambios" : "Crear destino"}
         </button>
       </div>
     </form>

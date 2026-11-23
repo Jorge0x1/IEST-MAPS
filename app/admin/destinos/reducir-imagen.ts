@@ -33,3 +33,31 @@ export async function reducirImagen(archivo: File): Promise<Blob> {
     imagen.close();
   }
 }
+
+// Reduce un logo: lado mayor de 256 px como máximo, SIN fondo (conserva la
+// transparencia). WebP si el navegador sabe codificarlo; si no, PNG.
+const LADO_MAXIMO_LOGO = 256;
+
+export async function reducirLogo(archivo: File): Promise<{ blob: Blob; extension: "png" | "webp" }> {
+  const imagen = await createImageBitmap(archivo);
+  try {
+    const escala = Math.min(1, LADO_MAXIMO_LOGO / Math.max(imagen.width, imagen.height));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.max(1, Math.round(imagen.width * escala));
+    lienzo.height = Math.max(1, Math.round(imagen.height * escala));
+    const contexto = lienzo.getContext("2d");
+    if (!contexto) throw new Error("El navegador no pudo procesar la imagen.");
+    contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+
+    const codificar = (tipo: string) =>
+      new Promise<Blob | null>((resolver) => lienzo.toBlob(resolver, tipo, 0.9));
+    const webp = await codificar("image/webp");
+    // Safari viejo ignora image/webp y devuelve PNG: se revisa el tipo real.
+    if (webp && webp.type === "image/webp") return { blob: webp, extension: "webp" };
+    const png = await codificar("image/png");
+    if (!png) throw new Error("No se pudo procesar el logo.");
+    return { blob: png, extension: "png" };
+  } finally {
+    imagen.close();
+  }
+}

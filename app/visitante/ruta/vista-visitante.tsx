@@ -13,6 +13,7 @@ import { ALTURA_PANEL_MINIMO, PanelDeslizable, type EstadoPanel } from "@/app/co
 import type { ResultadoRuta } from "@/lib/rutas/actions";
 import { puntosDeRuta } from "@/lib/rutas/mapa";
 import { useEscritorio } from "@/app/components/use-escritorio";
+import type { MarcadorMapa } from "@/lib/marcadores";
 
 // Leaflet usa `window`: solo se carga en el navegador.
 const MapaLeafletRuta = dynamic(() => import("@/app/components/mapa-leaflet-ruta"), {
@@ -39,9 +40,10 @@ type Props = {
   token: string;
   sinEscaleras: boolean;
   finalizar: () => Promise<void>;
+  marcadores: MarcadorMapa[];
 };
 
-export function VistaVisitante({ nombre, destinoNombre, destinoPiso, destinoDescripcion, destinoFotoUrl, origenNombre, motivo, horaEntrada, ruta, token, sinEscaleras, finalizar }: Props) {
+export function VistaVisitante({ nombre, destinoNombre, destinoPiso, destinoDescripcion, destinoFotoUrl, origenNombre, motivo, horaEntrada, ruta, token, sinEscaleras, finalizar, marcadores }: Props) {
   // Con ruta, el panel arranca abajo para dejar ver el mapa; sin ella, a media altura.
   const [estadoPanel, setEstadoPanel] = useState<EstadoPanel>(ruta?.ok ? "minimo" : "medio");
   const escritorio = useEscritorio();
@@ -71,6 +73,7 @@ export function VistaVisitante({ nombre, destinoNombre, destinoPiso, destinoDesc
           margenInferior={escritorio ? 0 : ALTURA_PANEL_MINIMO}
           margenIzquierdo={escritorio ? ANCHO_COLUMNA_ESCRITORIO : 0}
           controlesZoom={escritorio}
+          marcadores={marcadores}
         />
       </div>
 

@@ -1,4 +1,5 @@
 import { urlFotoDestino } from "@/lib/fotos";
+import { marcadoresDeFilas, type FilaMarcador } from "@/lib/marcadores";
 import { createClient } from "@/utils/supabase/server";
 import { requerirRol } from "@/utils/auth";
 import { Navegador, type DestinoAlumno, type EntradaAlumno } from "./navegador";
@@ -30,11 +31,15 @@ export default async function UsuarioDashboardPage() {
   const supabase = await createClient();
   const columnas = "id, nombre, tipo, piso, nombres_alternativos, edificio_id, descripcion, foto_path";
 
-  const [destinosRes, entradasRes, edificiosRes] = await Promise.all([
+  const [destinosRes, entradasRes, edificiosRes, marcadoresRes] = await Promise.all([
     supabase.from("nodos").select(columnas).eq("buscable", true).order("nombre").range(0, MAX_NODOS - 1),
     supabase.from("nodos").select(columnas).eq("tipo", "entrada").order("nombre").range(0, MAX_NODOS - 1),
     supabase.from("edificios").select("id, nombre"),
+    supabase.rpc("marcadores_mapa"),
   ]);
+  // Los iconos son un extra: si fallan (p. ej. falta la migración 0011), el mapa sigue sin ellos.
+  if (marcadoresRes.error) console.error("[alumno] No se pudieron cargar los iconos del mapa:", marcadoresRes.error.message);
+  const marcadores = marcadoresRes.error ? [] : marcadoresDeFilas(marcadoresRes.data as FilaMarcador[] | null);
 
   const error = destinosRes.error ?? entradasRes.error ?? edificiosRes.error;
   if (error) {
@@ -69,5 +74,5 @@ export default async function UsuarioDashboardPage() {
     edificioNombre: edificioDe(fila),
   }));
 
-  return <Navegador destinos={destinos} entradas={entradas} nombreUsuario={profile.nombre ?? profile.correo ?? "Usuario"} />;
+  return <Navegador destinos={destinos} entradas={entradas} marcadores={marcadores} nombreUsuario={profile.nombre ?? profile.correo ?? "Usuario"} />;
 }

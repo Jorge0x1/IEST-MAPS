@@ -56,5 +56,47 @@ class EstiloPlano(unittest.TestCase):
         self.assertLess(len(self.pb_estilo) - len(self.pb), 20 * 1024)
 
 
+DECO = {
+    "arboles": [[22.3245, -97.8800], {"lat": 22.3246, "lng": -97.8801, "radio_m": 4}],
+    "jardineras": [{"lat": 22.3240, "lng": -97.8798, "ancho_m": 3, "largo_m": 6, "angulo": 10}],
+}
+
+
+class Decoracion(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.pb = leer("planta-baja.svg")
+        cls.p4 = leer("piso-4.svg")
+
+    def test_esquina_noroeste(self):
+        (sur, oeste), (norte, este) = estilo.LIMITES
+        x, y = estilo.latlng_a_plano(self.pb, norte, oeste)
+        # Esquina superior izquierda del viewBox (14, 137.84) en coordenadas internas.
+        self.assertAlmostEqual(x, (14 - 14) / 0.06, delta=1)
+        self.assertAlmostEqual(y, (794 - 137.839844) / 0.06, delta=1)
+
+    def test_un_bloque_de_decoracion(self):
+        r = estilo.estilizar(self.pb, DECO)
+        self.assertEqual(r.count("<!--decoracion-->"), 1)
+        self.assertEqual(r.count('class="arbol"'), 2)
+        self.assertEqual(r.count('class="jardinera"'), 1)
+        ET.fromstring(r)
+
+    def test_decoracion_antes_de_la_cancha(self):
+        r = estilo.estilizar(self.pb, DECO)
+        self.assertLess(r.index("<!--decoracion-->"), r.index('id="cancha"'))
+
+    def test_idempotente_con_decoracion(self):
+        una = estilo.estilizar(self.pb, DECO)
+        self.assertEqual(estilo.estilizar(una, DECO), una)
+
+    def test_quitar_decoracion(self):
+        una = estilo.estilizar(self.pb, DECO)
+        self.assertNotIn("<!--decoracion-->", estilo.estilizar(una, {"arboles": [], "jardineras": []}))
+
+    def test_piso_sin_campo_no_recibe_decoracion(self):
+        self.assertNotIn("<!--decoracion-->", estilo.estilizar(self.p4, DECO))
+
+
 if __name__ == "__main__":
     unittest.main()

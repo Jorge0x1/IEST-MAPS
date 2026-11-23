@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import type { PuntoMapa, RolPunto } from "@/lib/rutas/mapa";
 import type { Lectura } from "@/lib/ubicacion";
+import { htmlMarcador, marcadoresVisibles, mostrarEtiqueta, TAMANO_MARCADOR, type MarcadorMapa } from "@/lib/marcadores";
 import { CENTRO_CAMPUS, LIMITES_CAMPUS, agregarCapaBase, escaparHtml, etiquetaPiso, PISO_PLANTA_BAJA, type CapaBase } from "./mapa-base";
 
 const COLOR_RUTA = "#ff5900";
@@ -14,6 +15,11 @@ const COLOR_UBICACION = "#2563eb";
 // Panel propio para la ubicación: encima de la ruta y sus marcadores (600),
 // debajo de los tooltips (650).
 const PANEL_UBICACION = "ubicacion";
+// Panel de los iconos del campus (comida, escaleras, las A…): encima del plano
+// (250) y debajo de la línea de la ruta (overlayPane, 400) y de sus pines (600),
+// así nunca tapan la ruta ni reciben el toque que era para un pin.
+const PANEL_MARCADORES = "marcadores";
+const SIN_MARCADORES: MarcadorMapa[] = [];
 
 const ESTILO_PUNTO: Record<RolPunto, { tamano: number; fondo: string; texto: string }> = {
   inicio: { tamano: 26, fondo: "#177245", texto: "#ffffff" },
@@ -65,6 +71,10 @@ type Props = {
   seguir?: boolean;
   // Si no es null, es el piso que se ve (el de la navegación) y se oculta el selector.
   pisoForzado?: number | null;
+  // Iconos del campus (RPC `marcadores_mapa`). Se ven los del piso activo.
+  marcadores?: MarcadorMapa[];
+  // Al tocar un icono de un destino buscable. Sin callback, el toque solo muestra el nombre.
+  onMarcador?: (id: string) => void;
 };
 
 export default function MapaLeafletRuta({
@@ -77,12 +87,22 @@ export default function MapaLeafletRuta({
   ubicacion = null,
   seguir = false,
   pisoForzado = null,
+  marcadores = SIN_MARCADORES,
+  onMarcador,
 }: Props) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
   const capaRef = useRef<L.LayerGroup | null>(null);
   const capaBaseRef = useRef<CapaBase | null>(null);
   const capaUbicacionRef = useRef<L.LayerGroup | null>(null);
+  const capaMarcadoresRef = useRef<L.LayerGroup | null>(null);
+  const [zoom, setZoom] = useState(18);
+  // El callback se lee al tocar: cambiarlo no redibuja los iconos.
+  const onMarcadorRef = useRef(onMarcador);
+  useEffect(() => {
+    onMarcadorRef.current = onMarcador;
+  }, [onMarcador]);
+  const conAccion = onMarcador !== undefined;
   // El botón "centrar en mí" lee la lectura más reciente sin recrearse.
   const ubicacionRef = useRef(ubicacion);
   useEffect(() => {
@@ -136,6 +156,9 @@ export default function MapaLeafletRuta({
     panelUbicacion.style.zIndex = "620";
     panelUbicacion.style.pointerEvents = "none";
     capaUbicacionRef.current = L.layerGroup().addTo(mapa);
+    mapa.createPane(PANEL_MARCADORES).style.zIndex = "350";
+    capaMarcadoresRef.current = L.layerGroup().addTo(mapa);
+    mapa.on("zoomend", () => setZoom(mapa.getZoom()));
     mapa.on("dragstart", () => {
       siguiendoRef.current = false;
     });
@@ -159,8 +182,36 @@ export default function MapaLeafletRuta({
       capaRef.current = null;
       capaBaseRef.current = null;
       capaUbicacionRef.current = null;
+      capaMarcadoresRef.current = null;
     };
   }, []);
+
+  // Iconos del campus del piso activo; con el zoom cambia qué se ve y si llevan nombre.
+  useEffect(() => {
+    const capa = capaMarcadoresRef.current;
+    if (!capa) return;
+    capa.clearLayers();
+    const conEtiqueta = mostrarEtiqueta(zoom);
+    const mitad = TAMANO_MARCADOR / 2;
+    for (const m of marcadoresVisibles(marcadores, pisoActivo, zoom)) {
+      const marcador = L.marker([m.lat, m.lng], {
+        pane: PANEL_MARCADORES,
+        keyboard: false,
+        icon: L.divIcon({
+          html: htmlMarcador(m, conEtiqueta),
+          className: "",
+          iconSize: [TAMANO_MARCADOR, TAMANO_MARCADOR],
+          iconAnchor: [mitad, mitad],
+        }),
+      });
+      if (conAccion && m.buscable) {
+        marcador.on("click", () => onMarcadorRef.current?.(m.id));
+      } else if (!conEtiqueta) {
+        marcador.bindTooltip(escaparHtml(m.nombre), { direction: "top", offset: [0, -mitad] });
+      }
+      marcador.addTo(capa);
+    }
+  }, [marcadores, pisoActivo, zoom, conAccion]);
 
   // El plano visible es el del piso activo. Va antes del efecto de la ruta para
   // que el mapa ya tenga el plano correcto cuando se encuadra.

@@ -92,7 +92,5 @@ export function agregarCapaBase(mapa: L.Map, pisoInicial: number | null = PISO_P
 }
 
 // Leaflet interpreta como HTML el texto de tooltips y popups: todo dato que
-// venga de la base (nombres de nodos y edificios) pasa por aquí antes.
-export function escaparHtml(texto: string): string {
-  return texto.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-}
+// venga de la base (nombres de nodos y edificios) pasa por `escaparHtml`.
+export { escaparHtml } from "@/lib/html";
