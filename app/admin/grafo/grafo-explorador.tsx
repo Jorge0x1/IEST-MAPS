@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { ETIQUETA_TIPO, ListaPasos } from "@/app/components/pasos-ruta";
 import { diagnosticarGrafo } from "@/lib/rutas/diagnostico";
 import { calcularRuta, type ResultadoRuta } from "@/lib/rutas/actions";
+import { distanciaMetros } from "@/lib/geo";
+import { borrarConexionGrafo, cambiarSentidoConexion, conectarNodos, type ResultadoEdicionGrafo } from "./actions";
 import { StatCard } from "../components/admin-ui";
 import { COLOR_TIPO, COLOR_PROBLEMA } from "./colores";
 import styles from "./grafo.module.css";
@@ -35,6 +37,8 @@ export type ConexionGrafoAdmin = {
 export type FocoMapa = { id: string; vez: number } | null;
 
 const MAX_POR_LISTA = 15;
+const TIPOS_TRANSICION = new Set(["escalera", "elevador"]);
+const MAX_TRANSICIONES = 6;
 
 function etiqueta(n: NodoGrafoAdmin) {
   return `${n.nombre} · ${n.edificioNombre ?? "Sin edificio"} · Piso ${n.piso}`;
@@ -50,6 +54,15 @@ export function GrafoExplorador({ nodos, conexiones }: { nodos: NodoGrafoAdmin[]
   const [foco, setFoco] = useState<FocoMapa>(null);
   const [calculando, startTransition] = useTransition();
   const solicitud = useRef(0);
+
+  // Modo "Conectar": clic en un nodo y luego en otro crea la conexión.
+  const [modo, setModo] = useState<"ver" | "conectar">("ver");
+  const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
+  const [bidireccional, setBidireccional] = useState(true);
+  const [encadenar, setEncadenar] = useState(true);
+  const [aviso, setAviso] = useState<ResultadoEdicionGrafo | null>(null);
+  const [ultimaCreada, setUltimaCreada] = useState<{ id: string; seleccionPrevia: string | null } | null>(null);
+  const [guardando, startGuardar] = useTransition();
 
   const diagnostico = useMemo(() => diagnosticarGrafo(nodos, conexiones), [nodos, conexiones]);
   const porId = useMemo(() => new Map(nodos.map((n) => [n.id, n])), [nodos]);
@@ -93,6 +106,92 @@ export function GrafoExplorador({ nodos, conexiones }: { nodos: NodoGrafoAdmin[]
     limpiarRuta();
   }
 
+  const seleccionado = seleccionadoId ? porId.get(seleccionadoId) : undefined;
+
+  // Escaleras/elevadores de OTROS pisos, más cercanos en horizontal al elegido:
+  // normalmente la primera es la que está justo encima o debajo.
+  const transicionesCercanas = useMemo(() => {
+    if (!seleccionado || !TIPOS_TRANSICION.has(seleccionado.tipo) || seleccionado.lat === null || seleccionado.lng === null) {
+      return [];
+    }
+    const { lat, lng } = seleccionado;
+    const conectados = new Set(
+      conexiones
+        .filter((c) => c.nodo_origen_id === seleccionado.id || c.nodo_destino_id === seleccionado.id)
+        .map((c) => (c.nodo_origen_id === seleccionado.id ? c.nodo_destino_id : c.nodo_origen_id)),
+    );
+    return nodos
+      .filter((n) => n.piso !== seleccionado.piso && TIPOS_TRANSICION.has(n.tipo) && n.lat !== null && n.lng !== null)
+      .map((n) => ({ nodo: n, metros: distanciaMetros(lat, lng, n.lat!, n.lng!), yaConectado: conectados.has(n.id) }))
+      .sort((a, b) => a.metros - b.metros)
+      .slice(0, MAX_TRANSICIONES);
+  }, [seleccionado, nodos, conexiones]);
+
+  useEffect(() => {
+    if (modo !== "conectar") return;
+    const alPresionar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSeleccionadoId(null);
+    };
+    window.addEventListener("keydown", alPresionar);
+    return () => window.removeEventListener("keydown", alPresionar);
+  }, [modo]);
+
+  function cambiarModo(nuevo: "ver" | "conectar") {
+    setModo(nuevo);
+    setSeleccionadoId(null);
+    setAviso(null);
+  }
+
+  function conectar(origen: string, destino: string) {
+    const seleccionPrevia = seleccionadoId;
+    startGuardar(async () => {
+      let resultado: ResultadoEdicionGrafo;
+      try {
+        resultado = await conectarNodos(origen, destino, bidireccional);
+      } catch {
+        resultado = { ok: false, mensaje: "No se pudo crear la conexión. Intenta de nuevo." };
+      }
+      setAviso(resultado);
+      if (resultado.ok) {
+        if (resultado.conexionId) setUltimaCreada({ id: resultado.conexionId, seleccionPrevia });
+        setSeleccionadoId(encadenar ? destino : null);
+      }
+    });
+  }
+
+  function ejecutar(accion: () => Promise<ResultadoEdicionGrafo>, alTerminar?: () => void) {
+    startGuardar(async () => {
+      let resultado: ResultadoEdicionGrafo;
+      try {
+        resultado = await accion();
+      } catch {
+        resultado = { ok: false, mensaje: "No se pudo guardar el cambio. Intenta de nuevo." };
+      }
+      setAviso(resultado);
+      if (resultado.ok) alTerminar?.();
+    });
+  }
+
+  function deshacerUltima() {
+    if (!ultimaCreada) return;
+    const { id, seleccionPrevia } = ultimaCreada;
+    ejecutar(() => borrarConexionGrafo(id), () => {
+      setUltimaCreada(null);
+      setSeleccionadoId(seleccionPrevia);
+    });
+  }
+
+  function alElegirNodo(id: string) {
+    if (modo === "ver") {
+      elegirEnMapa(id);
+      return;
+    }
+    if (guardando) return;
+    if (!seleccionadoId) setSeleccionadoId(id);
+    else if (seleccionadoId === id) setSeleccionadoId(null);
+    else conectar(seleccionadoId, id);
+  }
+
   function probar() {
     if (!origenId || !destinoId || origenId === destinoId) return;
     const numero = ++solicitud.current;
@@ -127,6 +226,11 @@ export function GrafoExplorador({ nodos, conexiones }: { nodos: NodoGrafoAdmin[]
               <p className={styles.panelKicker}>Red de navegación</p>
               <h2 id="mapa-grafo-title" className={styles.panelTitle}>Nodos y conexiones</h2>
             </div>
+            <div className="flex flex-wrap items-center gap-3">
+            <div className={styles.modoToggle} role="group" aria-label="Modo del mapa">
+              <button type="button" aria-pressed={modo === "ver"} onClick={() => cambiarModo("ver")}>Ver</button>
+              <button type="button" aria-pressed={modo === "conectar"} onClick={() => cambiarModo("conectar")}>Conectar</button>
+            </div>
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
               Piso
               <select
@@ -140,6 +244,7 @@ export function GrafoExplorador({ nodos, conexiones }: { nodos: NodoGrafoAdmin[]
                 ))}
               </select>
             </label>
+            </div>
           </div>
 
           {nodos.length === 0 ? (
@@ -155,7 +260,13 @@ export function GrafoExplorador({ nodos, conexiones }: { nodos: NodoGrafoAdmin[]
               origenId={origenId}
               destinoId={destinoId}
               foco={foco}
-              onElegirNodo={elegirEnMapa}
+              onElegirNodo={alElegirNodo}
+              modoConectar={modo === "conectar"}
+              seleccionadoId={seleccionadoId}
+              onEliminarConexion={(id) => ejecutar(() => borrarConexionGrafo(id), () => {
+                if (ultimaCreada?.id === id) setUltimaCreada(null);
+              })}
+              onCambiarSentido={(id, valor) => ejecutar(() => cambiarSentidoConexion(id, valor))}
             />
           )}
 
@@ -194,6 +305,91 @@ export function GrafoExplorador({ nodos, conexiones }: { nodos: NodoGrafoAdmin[]
         </section>
 
         <div className={styles.sideColumn}>
+          {modo === "conectar" ? (
+          <section className={styles.panel} aria-labelledby="conectar-title">
+            <div className={styles.panelHeader}>
+              <p className={styles.panelKicker}>Edición del grafo</p>
+              <h2 id="conectar-title" className={styles.panelTitle}>Conectar nodos</h2>
+            </div>
+            <div className={`${styles.panelBody} grid gap-3`}>
+              <p className="text-xs text-slate-500">
+                Toca un nodo y luego otro para unirlos; el costo es la distancia real. Toca una línea para eliminarla o
+                cambiar su sentido. <kbd className="rounded border px-1">Esc</kbd> suelta la selección.
+              </p>
+
+              <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-3 text-sm">
+                {seleccionado ? (
+                  <>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Desde</p>
+                    <p className="font-semibold text-slate-900">{seleccionado.nombre}</p>
+                    <p className="text-xs text-slate-500">
+                      {ETIQUETA_TIPO[seleccionado.tipo] ?? seleccionado.tipo} · Piso {seleccionado.piso}
+                      {seleccionado.edificioNombre ? ` · ${seleccionado.edificioNombre}` : ""}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">Ahora toca el nodo con el que se conecta.</p>
+                  </>
+                ) : (
+                  <p className="text-slate-600">Toca el primer nodo en el mapa.</p>
+                )}
+              </div>
+
+              {transicionesCercanas.length > 0 ? (
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Conectar con otro piso</p>
+                  <p className="text-xs text-slate-500">Escaleras y elevadores más cercanos en otros pisos.</p>
+                  <ul className="mt-1.5 grid gap-1">
+                    {transicionesCercanas.map(({ nodo, metros, yaConectado }) => (
+                      <li key={nodo.id}>
+                        <button
+                          type="button"
+                          disabled={guardando || yaConectado}
+                          onClick={() => seleccionado && conectar(seleccionado.id, nodo.id)}
+                          className="flex w-full items-center justify-between gap-2 rounded-md border border-[var(--border)] px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-[var(--brand-primary-soft)] disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent"
+                        >
+                          <span className="truncate">{nodo.nombre} <span className="text-xs text-slate-500">· P{nodo.piso}</span></span>
+                          <span className="shrink-0 text-xs text-slate-500">{yaConectado ? "Ya conectado" : `${metros.toFixed(1)} m`}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <label className="flex items-start gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={encadenar} onChange={(e) => setEncadenar(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--brand-primary)]" />
+                <span><strong className="font-semibold">Encadenar</strong> — el último nodo queda elegido para seguir trazando. Desactívalo para conectar salones a un pasillo uno por uno.</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={bidireccional} onChange={(e) => setBidireccional(e.target.checked)} className="h-4 w-4 accent-[var(--brand-primary)]" />
+                Bidireccional
+              </label>
+
+              {aviso ? (
+                <p role="status" className={`text-sm ${aviso.ok ? "text-emerald-700" : "text-red-700"}`}>{aviso.mensaje}</p>
+              ) : null}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={deshacerUltima}
+                  disabled={guardando || !ultimaCreada}
+                  className="flex-1 rounded-lg border border-[var(--border-strong)] px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Deshacer última
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSeleccionadoId(null)}
+                  disabled={!seleccionadoId}
+                  className="rounded-lg border border-[var(--border-strong)] px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Soltar
+                </button>
+              </div>
+              {guardando ? <p className="text-xs text-slate-500">Guardando…</p> : null}
+            </div>
+          </section>
+          ) : (
           <section className={styles.panel} aria-labelledby="probar-ruta-title">
             <div className={styles.panelHeader}>
               <p className={styles.panelKicker}>Motor de rutas</p>
@@ -247,6 +443,7 @@ export function GrafoExplorador({ nodos, conexiones }: { nodos: NodoGrafoAdmin[]
               </div>
             </div>
           </section>
+          )}
 
           <section className={styles.panel} aria-labelledby="problemas-title">
             <div className={styles.panelHeader}>

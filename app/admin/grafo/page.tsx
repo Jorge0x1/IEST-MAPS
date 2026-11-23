@@ -3,8 +3,9 @@ import { createClient } from "@/utils/supabase/server";
 import { GrafoExplorador, type ConexionGrafoAdmin, type NodoGrafoAdmin } from "./grafo-explorador";
 import styles from "./grafo.module.css";
 
-// Vista de solo lectura del grafo completo: diagnóstico de problemas, mapa y
-// prueba de rutas. Para editar se usan Destinos, Conexiones y el trazador.
+// Vista del grafo completo: diagnóstico de problemas, mapa y
+// prueba de rutas. El modo "Conectar" crea y borra conexiones aquí mismo;
+// nodos nuevos se siguen creando en Destinos y con el trazador.
 
 // Cota explícita para no depender del límite por defecto de PostgREST.
 const MAX_FILAS = 5000;

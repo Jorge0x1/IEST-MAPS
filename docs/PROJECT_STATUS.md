@@ -97,6 +97,13 @@ Next.js y Supabase, sin reutilizar su backend ni su interfaz anterior.
   filtro por piso, diagnóstico de problemas (partes desconectadas, nodos aislados,
   destinos inalcanzables, pasillos marcados como destino, escaleras/elevadores sin
   otro piso, nodos sin coordenadas) y prueba de rutas entre cualquier par de nodos.
+- [x] Modo "Conectar" en el mapa del grafo: clic en dos nodos crea la conexión (costo =
+  distancia real, calculada en el servidor), opción de encadenar para seguir trazando,
+  clic en una línea para eliminarla o cambiar su sentido, deshacer la última, y lista de
+  escaleras/elevadores de otros pisos ordenados por cercanía para conectar pisos sin
+  cambiar de vista (`app/admin/grafo/actions.ts`). Pendiente: trazar pasillos desde el
+  mismo mapa enganchándose a nodos existentes y sugerir el pasillo más cercano a salones
+  aislados.
 
 ### Guardia y visitantes
 

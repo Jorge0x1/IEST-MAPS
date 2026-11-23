@@ -160,3 +160,65 @@
     display: none;
   }
 }
+
+/* Modo "Conectar" del mapa del grafo */
+.mapaConectando :global(.leaflet-interactive) {
+  cursor: crosshair;
+}
+
+.popupConexion p {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.popupConexion div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.popupBoton,
+.popupBotonPeligro {
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: #334155;
+}
+
+.popupBoton:hover {
+  background: #f8fafc;
+}
+
+.popupBotonPeligro {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.popupBotonPeligro:hover {
+  background: #fef2f2;
+}
+
+.modoToggle {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+
+.modoToggle button {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #475569;
+  background: #fff;
+}
+
+.modoToggle button[aria-pressed="true"] {
+  background: var(--brand-primary);
+  color: #fff;
+}
