@@ -1,5 +1,6 @@
 import { urlFotoDestino } from "@/lib/fotos";
 import { marcadoresDeFilas, type FilaMarcador } from "@/lib/marcadores";
+import { leerTodo } from "@/lib/leer-todo";
 import { createClient } from "@/utils/supabase/server";
 import { requerirRol } from "@/utils/auth";
 import { Navegador, type DestinoAlumno, type EntradaAlumno } from "./navegador";
@@ -20,10 +21,10 @@ type FilaNodo = {
   foto_path: string | null;
 };
 
-// Cota explícita para no depender del límite por defecto de PostgREST. Un
-// campus tiene cientos de destinos; si algún día se acerca a esto, la búsqueda
-// debe pasar al servidor (RPC con el índice trigram de nodos.nombre).
-const MAX_NODOS = 2000;
+// Supabase corta cada consulta en 1000 filas aunque se pida un rango mayor,
+// así que se lee por páginas con leerTodo. Un campus tiene cientos de destinos;
+// si algún día fueran miles, la búsqueda debería pasar al servidor (RPC con el
+// índice trigram de nodos.nombre) en vez de mandarlos todos al navegador.
 
 export default async function UsuarioDashboardPage() {
   // Misma sesión que valida el layout (obtenerSesionConPerfil usa cache por petición).
@@ -31,9 +32,15 @@ export default async function UsuarioDashboardPage() {
   const supabase = await createClient();
   const columnas = "id, nombre, tipo, piso, nombres_alternativos, edificio_id, descripcion, foto_path";
 
-  const [destinosRes, entradasRes, edificiosRes, marcadoresRes] = await Promise.all([
-    supabase.from("nodos").select(columnas).eq("buscable", true).order("nombre").range(0, MAX_NODOS - 1),
-    supabase.from("nodos").select(columnas).eq("tipo", "entrada").order("nombre").range(0, MAX_NODOS - 1),
+  // Si falla, leerTodo lanza; se convierte en el Error para mostrar el aviso.
+  const alFallar = (causa: unknown) => (causa instanceof Error ? causa : new Error(String(causa)));
+  const [destinosLeidos, entradasLeidas, edificiosRes, marcadoresRes] = await Promise.all([
+    leerTodo<FilaNodo>((desde, hasta) =>
+      supabase.from("nodos").select(columnas).eq("buscable", true).order("nombre").order("id").range(desde, hasta),
+    ).catch(alFallar),
+    leerTodo<FilaNodo>((desde, hasta) =>
+      supabase.from("nodos").select(columnas).eq("tipo", "entrada").order("nombre").order("id").range(desde, hasta),
+    ).catch(alFallar),
     supabase.from("edificios").select("id, nombre"),
     supabase.rpc("marcadores_mapa"),
   ]);
@@ -41,9 +48,12 @@ export default async function UsuarioDashboardPage() {
   if (marcadoresRes.error) console.error("[alumno] No se pudieron cargar los iconos del mapa:", marcadoresRes.error.message);
   const marcadores = marcadoresRes.error ? [] : marcadoresDeFilas(marcadoresRes.data as FilaMarcador[] | null);
 
-  const error = destinosRes.error ?? entradasRes.error ?? edificiosRes.error;
-  if (error) {
-    console.error("[alumno] No se pudo cargar el catálogo:", error.message);
+  const error =
+    (destinosLeidos instanceof Error ? destinosLeidos : null) ??
+    (entradasLeidas instanceof Error ? entradasLeidas : null) ??
+    edificiosRes.error;
+  if (error || destinosLeidos instanceof Error || entradasLeidas instanceof Error) {
+    console.error("[alumno] No se pudo cargar el catálogo:", error);
     return (
       <main className="mx-auto max-w-2xl px-5 py-10">
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
@@ -57,7 +67,7 @@ export default async function UsuarioDashboardPage() {
   const nombreEdificio = new Map((edificiosRes.data ?? []).map((e) => [e.id as string, e.nombre as string]));
   const edificioDe = (fila: FilaNodo) => (fila.edificio_id ? (nombreEdificio.get(fila.edificio_id) ?? null) : null);
 
-  const destinos: DestinoAlumno[] = ((destinosRes.data ?? []) as FilaNodo[]).map((fila) => ({
+  const destinos: DestinoAlumno[] = destinosLeidos.map((fila) => ({
     id: fila.id,
     nombre: fila.nombre,
     alias: fila.nombres_alternativos ?? [],
@@ -68,7 +78,7 @@ export default async function UsuarioDashboardPage() {
     fotoUrl: urlFotoDestino(fila.foto_path),
   }));
 
-  const entradas: EntradaAlumno[] = ((entradasRes.data ?? []) as FilaNodo[]).map((fila) => ({
+  const entradas: EntradaAlumno[] = entradasLeidas.map((fila) => ({
     id: fila.id,
     nombre: fila.nombre,
     edificioNombre: edificioDe(fila),

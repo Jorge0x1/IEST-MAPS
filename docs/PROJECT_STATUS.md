@@ -215,6 +215,9 @@ migraciones ya aplicadas para cambiar una base existente.
   que pagina hasta traer todo. En `/admin/destinos` y `/admin/conexiones` la búsqueda y
   los filtros corren en el navegador (sin recargar), se dibujan 40 tarjetas con "Mostrar
   más" y el formulario de edición de un nodo (con su mapa) solo se monta al abrirlo.
+  El guardia y el alumno también leen con `leerTodo` (el guardia solo destinos buscables y
+  entradas), y `/admin/edificios` pide el conteo de nodos por edificio a Postgres
+  (`nodos(count)`) en vez de descargar todos los nodos.
 
 ## Flujo actual de una visita
 

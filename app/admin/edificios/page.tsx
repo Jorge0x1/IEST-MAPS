@@ -12,9 +12,9 @@ type Edificio = {
   lat: number | null;
   lng: number | null;
   created_at: string;
+  // Conteo hecho por Postgres (embebido de PostgREST): no se descargan los nodos.
+  nodos: { count: number }[] | null;
 };
-
-type NodoEdificio = { edificio_id: string | null };
 
 function normalizar(texto: string) {
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -24,17 +24,16 @@ export default async function EdificiosPage({ searchParams }: { searchParams: Pr
   await requerirRol("administrador");
   const { buscar = "" } = await searchParams;
   const supabase = await createClient();
-  const [edificiosResult, nodosResult] = await Promise.all([
-    supabase.from("edificios").select("id, nombre, descripcion, lat, lng, created_at").order("nombre"),
-    supabase.from("nodos").select("edificio_id"),
-  ]);
+  // El número de nodos por edificio lo cuenta Postgres. Antes se descargaban
+  // todos los nodos para contarlos aquí, y pasando de 1000 el conteo salía corto.
+  const edificiosResult = await supabase
+    .from("edificios")
+    .select("id, nombre, descripcion, lat, lng, created_at, nodos(count)")
+    .order("nombre");
 
   const edificios = (edificiosResult.data ?? []) as Edificio[];
-  const nodos = (nodosResult.data ?? []) as NodoEdificio[];
-  const conteoNodos = nodos.reduce<Record<string, number>>((conteo, nodo) => {
-    if (nodo.edificio_id) conteo[nodo.edificio_id] = (conteo[nodo.edificio_id] ?? 0) + 1;
-    return conteo;
-  }, {});
+  const conteoNodos = Object.fromEntries(edificios.map((edificio) => [edificio.id, edificio.nodos?.[0]?.count ?? 0]));
+  const totalNodos = Object.values(conteoNodos).reduce((suma, n) => suma + n, 0);
   const termino = normalizar(buscar.trim());
   const filtrados = termino
     ? edificios.filter((edificio) => normalizar(`${edificio.nombre} ${edificio.descripcion ?? ""}`).includes(termino))
@@ -70,7 +69,7 @@ export default async function EdificiosPage({ searchParams }: { searchParams: Pr
       <section aria-label="Resumen de edificios" className={styles.statsGrid}>
         <StatCard label="Edificios registrados" value={edificios.length} tone="brand" />
         <StatCard label="Con coordenadas GPS" value={conCoordenadas} tone="success" />
-        <StatCard label="Nodos asociados" value={nodos.length} tone="info" />
+        <StatCard label="Nodos asociados" value={totalNodos} tone="info" />
       </section>
 
       <div className={styles.managementLayout}>
@@ -117,7 +116,7 @@ export default async function EdificiosPage({ searchParams }: { searchParams: Pr
             </form>
           </div>
 
-          {edificiosResult.error || nodosResult.error ? (
+          {edificiosResult.error ? (
             <div className={styles.feedback} role="alert">
               No se pudo cargar el catálogo. Verifica la conexión con Supabase.
             </div>
