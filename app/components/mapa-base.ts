@@ -53,13 +53,30 @@ export type CapaBase = {
 // encima, y los clics lo atraviesan. Quien no necesite cambiar de piso puede
 // ignorar el valor que devuelve.
 export function agregarCapaBase(mapa: L.Map, pisoInicial: number | null = PISO_PLANTA_BAJA): CapaBase {
-  mapa.createPane("plano").style.zIndex = "250";
+  // Panel inferior: la planta baja tenue y difuminada que queda de fondo al ver
+  // pisos superiores, para que no desaparezcan los edificios de un solo piso.
+  const paneFondo = mapa.createPane("plano-fondo");
+  paneFondo.style.zIndex = "240";
+  paneFondo.style.transition = "opacity 0.25s ease, filter 0.25s ease";
+
+  // Panel principal: el plano del piso activo.
+  const panePlano = mapa.createPane("plano");
+  panePlano.style.zIndex = "250";
+  panePlano.style.mixBlendMode = "multiply";
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 20,
     maxNativeZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(mapa);
+
+  // Referencia de la planta baja para pisos superiores.
+  const planoFondoPlantaBaja = L.imageOverlay(PLANOS_POR_PISO[PISO_PLANTA_BAJA].url, PLANTA_BAJA.limites, {
+    pane: "plano-fondo",
+    opacity: 0.25,
+    interactive: false,
+    alt: "",
+  });
 
   const planos = new Map<number, L.ImageOverlay>();
   let visible: L.ImageOverlay | null = null;
@@ -81,6 +98,17 @@ export function agregarCapaBase(mapa: L.Map, pisoInicial: number | null = PISO_P
 
   const cambiarPiso = (piso: number | null) => {
     const siguiente = planoDe(piso);
+
+    // En el piso 2 o superior, la planta baja queda de fondo difuminada y en gris
+    // para dar contraste a las zonas que sí tienen ese nivel.
+    if (piso !== null && piso > PISO_PLANTA_BAJA && siguiente) {
+      paneFondo.style.filter = "blur(2px) grayscale(45%)";
+      if (!mapa.hasLayer(planoFondoPlantaBaja)) planoFondoPlantaBaja.addTo(mapa);
+    } else {
+      paneFondo.style.filter = "none";
+      planoFondoPlantaBaja.remove();
+    }
+
     if (siguiente === visible) return;
     visible?.remove();
     siguiente?.addTo(mapa);
