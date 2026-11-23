@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test \"lib/**/*.test.ts\""
+    "test": "node --test \"lib/**/*.test.ts\" \"tests/**/*.test.ts\"",
+    "test:unitarias": "node --test \"lib/**/*.test.ts\"",
+    "test:integracion": "node --test \"tests/integracion/*.test.ts\"",
+    "test:regresion": "node --test \"tests/regresion/*.test.ts\"",
+    "test:seguridad": "node --test \"tests/seguridad/*.test.ts\"",
+    "test:estres": "node --test \"tests/estres/*.test.ts\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
