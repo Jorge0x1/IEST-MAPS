@@ -6,7 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export type EstadoConexion = { ok: boolean; mensaje: string };
 
-const UUID_RE = /^[0-9a-f-]{36}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MENSAJE_DUPLICADA = "Ya existe una conexión entre estos dos nodos";
 
 type DatosConexion = {

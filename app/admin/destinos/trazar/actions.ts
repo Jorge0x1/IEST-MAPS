@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export type EstadoCadena = { ok: boolean; mensaje: string };
 
-const UUID_RE = /^[0-9a-f-]{36}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIPOS_VALIDOS = new Set([
   "entrada", "pasillo", "salon", "oficina", "bano", "escalera", "elevador", "servicio",
 ]);
