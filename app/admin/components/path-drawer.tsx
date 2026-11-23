@@ -18,11 +18,19 @@ const iconoPunto = L.divIcon({
 
 export type PuntoTrazo = { lat: number; lng: number };
 
+// Grafo ya registrado, dibujado de referencia (no editable) debajo del trazo.
+export type NodoExistente = { id: string; nombre: string; tipo: string; piso: number; lat: number; lng: number };
+export type ConexionExistente = { nodo_origen_id: string; nodo_destino_id: string };
+
+const COLOR_EXISTENTE = "#64748b";
+
 export function PathDrawer({
   puntos,
   onPuntosChange,
   piso,
   onPisoChange,
+  nodosExistentes = [],
+  conexionesExistentes = [],
 }: {
   puntos: PuntoTrazo[];
   onPuntosChange: (puntos: PuntoTrazo[]) => void;
@@ -30,11 +38,14 @@ export function PathDrawer({
   // donde se van a crear los nodos.
   piso: number | null;
   onPisoChange: (piso: number) => void;
+  nodosExistentes?: NodoExistente[];
+  conexionesExistentes?: ConexionExistente[];
 }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
   const capaRef = useRef<L.LayerGroup | null>(null);
   const capaBaseRef = useRef<CapaBase | null>(null);
+  const capaExistentesRef = useRef<L.LayerGroup | null>(null);
   const pisoRef = useRef(piso);
   const puntosRef = useRef(puntos);
   const onCambioRef = useRef(onPuntosChange);
@@ -60,6 +71,8 @@ export function PathDrawer({
 
     capaBaseRef.current = agregarCapaBase(mapa, pisoRef.current);
 
+    // Primero lo existente para que el trazo nuevo quede encima.
+    capaExistentesRef.current = L.layerGroup().addTo(mapa);
     capaRef.current = L.layerGroup().addTo(mapa);
 
     mapa.on("click", (evento: L.LeafletMouseEvent) => {
@@ -77,6 +90,7 @@ export function PathDrawer({
       mapa.remove();
       mapaRef.current = null;
       capaRef.current = null;
+      capaExistentesRef.current = null;
       capaBaseRef.current = null;
     };
   }, []);
@@ -85,6 +99,38 @@ export function PathDrawer({
   useEffect(() => {
     capaBaseRef.current?.cambiarPiso(piso);
   }, [piso]);
+
+  // Nodos y conexiones ya registrados en el piso visible. No capturan el clic
+  // (bubbling): tocar encima de uno agrega un punto del trazo como siempre.
+  useEffect(() => {
+    const capa = capaExistentesRef.current;
+    if (!capa) return;
+    capa.clearLayers();
+    if (nodosExistentes.length === 0) return;
+
+    const porId = new Map(nodosExistentes.map((nodo) => [nodo.id, nodo]));
+    for (const conexion of conexionesExistentes) {
+      const a = porId.get(conexion.nodo_origen_id);
+      const b = porId.get(conexion.nodo_destino_id);
+      if (!a || !b || a.piso !== piso || b.piso !== piso) continue;
+      L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
+        color: COLOR_EXISTENTE, weight: 3, opacity: 0.55, interactive: false,
+      }).addTo(capa);
+    }
+    for (const nodo of nodosExistentes) {
+      if (nodo.piso !== piso) continue;
+      L.circleMarker([nodo.lat, nodo.lng], {
+        radius: nodo.tipo === "pasillo" ? 3.5 : 5,
+        color: "#ffffff",
+        weight: 1,
+        fillColor: COLOR_EXISTENTE,
+        fillOpacity: 0.8,
+        bubblingMouseEvents: true,
+      })
+        .bindTooltip(nodo.nombre, { direction: "top", offset: [0, -4] })
+        .addTo(capa);
+    }
+  }, [nodosExistentes, conexionesExistentes, piso]);
 
   // Redibuja los marcadores numerados y la línea del recorrido cada vez que
   // cambia la lista de puntos (agregar, deshacer, limpiar).

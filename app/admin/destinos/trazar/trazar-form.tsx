@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { crearCadenaNodos, type EstadoCadena } from "./actions";
-import type { PuntoTrazo } from "../../components/path-drawer";
+import type { ConexionExistente, NodoExistente, PuntoTrazo } from "../../components/path-drawer";
 import { etiquetaPiso, PISO_PLANTA_BAJA, PISOS_REGISTRADOS } from "@/lib/pisos";
 
 const PathDrawer = dynamic(
@@ -22,9 +22,19 @@ const tipos = [
   ["elevador", "Elevador"], ["servicio", "Servicio"],
 ] as const;
 
-export function TrazarForm({ edificios }: { edificios: { id: string; nombre: string }[] }) {
+export function TrazarForm({
+  edificios,
+  nodosExistentes,
+  conexionesExistentes,
+}: {
+  edificios: { id: string; nombre: string }[];
+  nodosExistentes: NodoExistente[];
+  conexionesExistentes: ConexionExistente[];
+}) {
   const [puntos, setPuntos] = useState<PuntoTrazo[]>([]);
   const [piso, setPiso] = useState<number>(PISO_PLANTA_BAJA);
+  const [verExistentes, setVerExistentes] = useState(true);
+  const enEstePiso = nodosExistentes.filter((nodo) => nodo.piso === piso).length;
   const [estado, formAction, pendiente] = useActionState(crearCadenaNodos, estadoInicial);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -90,7 +100,20 @@ export function TrazarForm({ edificios }: { edificios: { id: string; nombre: str
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{puntos.length} punto(s)</span>
       </div>
 
-      <PathDrawer puntos={puntos} onPuntosChange={setPuntos} piso={piso} onPisoChange={setPiso} />
+      <label className="flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" checked={verExistentes} onChange={(evento) => setVerExistentes(evento.target.checked)} className="size-4 accent-sky-700" />
+        Mostrar lo ya trazado en este piso
+        <span className="text-xs text-slate-500">({enEstePiso} nodo(s), en gris)</span>
+      </label>
+
+      <PathDrawer
+        puntos={puntos}
+        onPuntosChange={setPuntos}
+        piso={piso}
+        onPisoChange={setPiso}
+        nodosExistentes={verExistentes ? nodosExistentes : []}
+        conexionesExistentes={conexionesExistentes}
+      />
       <input type="hidden" name="puntos" value={JSON.stringify(puntos)} />
 
       <div className="flex flex-wrap gap-2">

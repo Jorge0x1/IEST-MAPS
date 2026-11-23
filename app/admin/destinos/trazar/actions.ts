@@ -102,6 +102,8 @@ export async function crearCadenaNodos(
   revalidatePath("/admin/destinos");
   revalidatePath("/admin/conexiones");
   revalidatePath("/admin/edificios");
+  revalidatePath("/admin/destinos/trazar");
+  revalidatePath("/admin/grafo");
 
   const creados = Array.isArray(data) ? data.length : puntos.length;
   return {
