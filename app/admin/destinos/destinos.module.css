@@ -1003,3 +1003,32 @@
     animation: none;
   }
 }
+
+/* Botón secundario (limpiar filtros, mostrar más). */
+.secondaryButton {
+  display: inline-flex;
+  min-height: 2.75rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--brand-primary-active);
+  background: var(--surface);
+  font-size: 0.78rem;
+  font-weight: 690;
+  line-height: 1.2;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  border-color: var(--brand-primary-active);
+  background: color-mix(in srgb, var(--brand-primary-active) 6%, var(--surface));
+}
+
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+  background: var(--surface-secondary);
+}

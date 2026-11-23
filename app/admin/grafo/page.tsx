@@ -1,5 +1,6 @@
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
+import { leerTodo } from "@/lib/leer-todo";
 import { GrafoExplorador, type ConexionGrafoAdmin, type NodoGrafoAdmin } from "./grafo-explorador";
 import styles from "./grafo.module.css";
 
@@ -7,31 +8,47 @@ import styles from "./grafo.module.css";
 // prueba de rutas. El modo "Conectar" crea y borra conexiones aquí mismo;
 // nodos nuevos se siguen creando en Destinos y con el trazador.
 
-// Cota explícita para no depender del límite por defecto de PostgREST.
-const MAX_FILAS = 5000;
+type FilaNodo = Omit<NodoGrafoAdmin, "edificioNombre"> & { edificio_id: string | null };
+type FilaEdificio = { id: string; nombre: string };
 
 export default async function GrafoPage() {
   await requerirRol("administrador");
   const supabase = await createClient();
 
-  const [nodosRes, conexionesRes, edificiosRes] = await Promise.all([
-    supabase
-      .from("nodos")
-      .select("id, nombre, tipo, piso, lat, lng, buscable, edificio_id")
-      .order("nombre")
-      .range(0, MAX_FILAS - 1),
-    supabase
-      .from("conexiones")
-      .select("id, nodo_origen_id, nodo_destino_id, bidireccional")
-      .range(0, MAX_FILAS - 1),
-    supabase.from("edificios").select("id, nombre"),
-  ]);
+  // Se lee todo por páginas: Supabase corta cada consulta en 1000 filas aunque
+  // se pida un rango mayor, y el grafo se vería incompleto sin avisar.
+  let filasNodos: FilaNodo[] = [];
+  let conexiones: ConexionGrafoAdmin[] = [];
+  let filasEdificios: FilaEdificio[] = [];
+  let error: unknown = null;
+  try {
+    [filasNodos, conexiones, filasEdificios] = await Promise.all([
+      leerTodo<FilaNodo>((desde, hasta) =>
+        supabase
+          .from("nodos")
+          .select("id, nombre, tipo, piso, lat, lng, buscable, edificio_id")
+          .order("nombre")
+          .order("id")
+          .range(desde, hasta),
+      ),
+      leerTodo<ConexionGrafoAdmin>((desde, hasta) =>
+        supabase
+          .from("conexiones")
+          .select("id, nodo_origen_id, nodo_destino_id, bidireccional")
+          .order("id")
+          .range(desde, hasta),
+      ),
+      leerTodo<FilaEdificio>((desde, hasta) =>
+        supabase.from("edificios").select("id, nombre").order("id").range(desde, hasta),
+      ),
+    ]);
+  } catch (causa) {
+    error = causa;
+    console.error("[grafo] No se pudo cargar el grafo:", causa);
+  }
 
-  const error = nodosRes.error ?? conexionesRes.error ?? edificiosRes.error;
-  if (error) console.error("[grafo] No se pudo cargar el grafo:", error.message);
-
-  const nombreEdificio = new Map((edificiosRes.data ?? []).map((e) => [e.id as string, e.nombre as string]));
-  const nodos: NodoGrafoAdmin[] = (nodosRes.data ?? []).map((n) => ({
+  const nombreEdificio = new Map(filasEdificios.map((e) => [e.id, e.nombre]));
+  const nodos: NodoGrafoAdmin[] = filasNodos.map((n) => ({
     id: n.id,
     nombre: n.nombre,
     tipo: n.tipo,
@@ -41,8 +58,6 @@ export default async function GrafoPage() {
     buscable: n.buscable,
     edificioNombre: n.edificio_id ? (nombreEdificio.get(n.edificio_id) ?? null) : null,
   }));
-  const conexiones = (conexionesRes.data ?? []) as ConexionGrafoAdmin[];
-  const truncado = nodos.length >= MAX_FILAS || conexiones.length >= MAX_FILAS;
 
   return (
     <main className={styles.page}>
@@ -71,14 +86,7 @@ export default async function GrafoPage() {
           No se pudo cargar el grafo. Verifica la conexión con Supabase y recarga la página.
         </div>
       ) : (
-        <>
-          {truncado ? (
-            <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-              Se muestran solo los primeros {MAX_FILAS} registros; el grafo puede verse incompleto.
-            </p>
-          ) : null}
-          <GrafoExplorador nodos={nodos} conexiones={conexiones} />
-        </>
+        <GrafoExplorador nodos={nodos} conexiones={conexiones} />
       )}
     </main>
   );

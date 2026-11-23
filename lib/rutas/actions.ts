@@ -18,6 +18,7 @@ import { createHash } from "node:crypto";
 import { obtenerSesionConPerfil } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 import { createServiceClient } from "@/utils/supabase/service";
+import { leerTodo } from "@/lib/leer-todo";
 import {
   buscarRuta,
   explicarSinRuta,
@@ -75,27 +76,8 @@ export type ResultadoRuta =
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// PostgREST corta cada respuesta en 1000 filas por defecto; se pide por páginas
-// para no truncar el grafo en silencio si llega a crecer.
-const TAMANO_PAGINA = 1000;
-
 type FilaNodo = NodoGrafo & { nombre: string; descripcion: string | null; foto_path: string | null };
 type FilaEdificio = { id: string; nombre: string };
-
-async function leerTodo<T>(
-  consulta: (
-    desde: number,
-    hasta: number,
-  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
-): Promise<T[]> {
-  const filas: T[] = [];
-  for (let desde = 0; ; desde += TAMANO_PAGINA) {
-    const { data, error } = await consulta(desde, desde + TAMANO_PAGINA - 1);
-    if (error) throw new Error(error.message);
-    filas.push(...(data ?? []));
-    if (!data || data.length < TAMANO_PAGINA) return filas;
-  }
-}
 
 const MENSAJES_SIN_RUTA: Record<MotivoSinRuta, string> = {
   origen_inexistente: "El punto de partida ya no existe en el mapa del campus.",

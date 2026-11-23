@@ -1,64 +1,41 @@
 import Link from "next/link";
-import { DestinationForm, type DestinoInicial, type EdificioOpcion } from "./destination-form";
-import { DeleteDestinationButton } from "./delete-destination-button";
+import { DestinationForm, type EdificioOpcion } from "./destination-form";
+import { CatalogoNodos, type DestinoCatalogo } from "./catalogo-nodos";
 import styles from "./destinos.module.css";
-import { StatCard, StatusBadge } from "../components/admin-ui";
+import { StatCard } from "../components/admin-ui";
+import { leerTodo } from "@/lib/leer-todo";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
-
-type Destino = DestinoInicial & { edificios: { nombre: string } | null };
-
-const etiquetasTipo: Record<string, string> = {
-  entrada: "Entrada", pasillo: "Pasillo", salon: "Salón", oficina: "Oficina",
-  bano: "Baño", escalera: "Escalera", elevador: "Elevador", servicio: "Servicio", edificio: "Edificio",
-};
-
-/**
- * Normaliza y formatea el nombre del edificio para evitar mostrar
- * solo un n\u00famero o generar redundancia visual.
- */
-function obtenerNombreEdificio(edificioObj: { nombre: string } | null): string {
-  if (!edificioObj?.nombre) return "Sin edificio";
-  const nombre = edificioObj.nombre.trim();
-  if (nombre.toLowerCase().startsWith("edificio")) return nombre;
-  return `Edificio ${nombre}`;
-}
-
-function normalizar(texto: string) {
-  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
 
 export default async function DestinosPage({ searchParams }: { searchParams: Promise<{ buscar?: string; edificio?: string; piso?: string }> }) {
   await requerirRol("administrador");
   const { buscar = "", edificio = "", piso = "" } = await searchParams;
   const supabase = await createClient();
-  const [destinosResult, edificiosResult] = await Promise.all([
-    supabase
-      .from("nodos")
-      .select("id, nombre, tipo, nombres_alternativos, edificio_id, piso, lat, lng, buscable, descripcion, foto_path, icono, logo_path, edificios(nombre)")
-      .order("piso")
-      .order("nombre"),
-    supabase.from("edificios").select("id, nombre").order("nombre"),
-  ]);
 
-  const destinos = (destinosResult.data ?? []) as unknown as Destino[];
-  const edificios = (edificiosResult.data ?? []) as EdificioOpcion[];
-  const termino = normalizar(buscar.trim());
-  const filtrados = destinos.filter((destino) => {
-    const textoBusqueda = [
-      destino.nombre,
-      destino.tipo,
-      etiquetasTipo[destino.tipo] ?? "",
-      obtenerNombreEdificio(destino.edificios),
-      destino.piso,
-      ...destino.nombres_alternativos,
-    ].join(" ");
-    const coincideTexto = !termino || normalizar(textoBusqueda).includes(termino);
-    const coincideEdificio = !edificio || destino.edificio_id === edificio;
-    const coincidePiso = piso === "" || String(destino.piso) === piso;
-    return coincideTexto && coincideEdificio && coincidePiso;
-  });
-  const pisos = [...new Set(destinos.map((destino) => destino.piso))].sort((a, b) => a - b);
+  // Se lee todo por páginas (Supabase corta en 1000 filas). El filtrado se hace
+  // en el navegador, en CatalogoNodos, para no recargar la página al buscar.
+  let destinos: DestinoCatalogo[] = [];
+  let edificios: EdificioOpcion[] = [];
+  let error = false;
+  try {
+    [destinos, edificios] = await Promise.all([
+      leerTodo<DestinoCatalogo>((desde, hasta) =>
+        supabase
+          .from("nodos")
+          .select("id, nombre, tipo, nombres_alternativos, edificio_id, piso, lat, lng, buscable, descripcion, foto_path, icono, logo_path, edificios(nombre)")
+          .order("piso")
+          .order("nombre")
+          .order("id")
+          .range(desde, hasta),
+      ),
+      leerTodo<EdificioOpcion>((desde, hasta) =>
+        supabase.from("edificios").select("id, nombre").order("nombre").order("id").range(desde, hasta),
+      ),
+    ]);
+  } catch (causa) {
+    console.error("[destinos] No se pudo cargar el catálogo:", causa);
+    error = true;
+  }
 
   return (
     <main className={styles.page}>
@@ -115,146 +92,7 @@ export default async function DestinosPage({ searchParams }: { searchParams: Pro
         </section>
 
         <section className={`${styles.panel} ${styles.catalogPanel}`} aria-labelledby="catalogo-nodos-title">
-          <div className={styles.panelHeader}>
-            <div className={styles.panelHeading}>
-              <p className={styles.panelKicker}>Red del campus</p>
-              <h2 id="catalogo-nodos-title" className={styles.panelTitle}>Catálogo de nodos</h2>
-              <p className={styles.panelDescription}>{filtrados.length} de {destinos.length} resultados</p>
-            </div>
-          </div>
-
-          <div className={styles.filterArea}>
-            <form action="/admin/destinos" className={styles.filterForm} aria-label="Filtrar catálogo de nodos">
-              <label className={styles.field} htmlFor="buscar-destino">
-                Buscar
-                <input
-                  id="buscar-destino"
-                  type="search"
-                  name="buscar"
-                  defaultValue={buscar}
-                  placeholder="Nombre, alias o tipo"
-                  className={styles.control}
-                />
-              </label>
-
-              <label className={styles.field} htmlFor="filtrar-edificio">
-                Edificio
-                <select
-                  id="filtrar-edificio"
-                  name="edificio"
-                  defaultValue={edificio}
-                  className={styles.control}
-                >
-                  <option value="">Todos los edificios</option>
-                  {edificios.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-                </select>
-              </label>
-
-              <label className={styles.field} htmlFor="filtrar-piso">
-                Piso
-                <select id="filtrar-piso" name="piso" defaultValue={piso} className={styles.control}>
-                  <option value="">Pisos</option>
-                  {pisos.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </label>
-
-              <div className={styles.filterAction}>
-                <button className={styles.primaryButton}>Filtrar</button>
-              </div>
-            </form>
-          </div>
-
-          {destinosResult.error || edificiosResult.error ? (
-            <div className={styles.feedback} role="alert">
-              No se pudo cargar el catálogo. Aplica la migración 0004 y verifica la conexión con Supabase.
-            </div>
-          ) : filtrados.length === 0 ? (
-            <div className={styles.emptyState}>
-              <span className={styles.emptyNode} aria-hidden="true" />
-              <p className={styles.emptyTitle}>No hay nodos para mostrar</p>
-              <p className={styles.emptyDescription}>Crea el primero o cambia los filtros.</p>
-            </div>
-          ) : (
-            <div className={styles.catalogList}>
-              {filtrados.map((destino) => {
-                return (
-                  <article key={destino.id} className={styles.nodeCard}>
-                    <div className={styles.nodeSummary}>
-                      <div className={styles.nodeIdentity}>
-                        <div className={styles.nodeTitleRow}>
-                          <h3 className={styles.nodeTitle}>{destino.nombre}</h3>
-                          <StatusBadge tone="brand">{etiquetasTipo[destino.tipo] ?? destino.tipo}</StatusBadge>
-                          <StatusBadge tone={destino.buscable ? "success" : "neutral"}>
-                            {destino.buscable ? "Buscable" : "Solo recorrido"}
-                          </StatusBadge>
-                        </div>
-
-                        <p className={styles.nodeLocation}>
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M4 21V6l9-3v18M13 8h7v13M7.5 9h2M7.5 13h2M16 13h1.5M2.5 21h19" />
-                          </svg>
-                          <span>{obtenerNombreEdificio(destino.edificios)}</span>
-                          <span className={styles.floorDivider} aria-hidden="true">·</span>
-                          <span>Piso {destino.piso}</span>
-                        </p>
-
-                        {destino.nombres_alternativos.length ? (
-                          <p className={styles.aliasText}>
-                            <span className={styles.aliasLabel}>Alias:</span> {destino.nombres_alternativos.join(", ")}
-                          </p>
-                        ) : null}
-
-                        <div className={styles.nodeMetadata}>
-                          {destino.lat !== null && destino.lng !== null ? (
-                            <a
-                              className={styles.coordinateLink}
-                              href={`https://www.openstreetmap.org/?mlat=${destino.lat}&mlon=${destino.lng}#map=19/${destino.lat}/${destino.lng}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              aria-label={`Ver coordenadas de ${destino.nombre} en OpenStreetMap`}
-                            >
-                              <svg viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" />
-                                <circle cx="12" cy="10" r="2.2" />
-                              </svg>
-                              <span>{destino.lat.toFixed(6)}, {destino.lng.toFixed(6)}</span>
-                            </a>
-                          ) : (
-                            <span className={styles.noCoordinates}>
-                              <svg viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" />
-                                <path d="m8.5 6.5 7 7" />
-                              </svg>
-                              Sin coordenadas todavía
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <DeleteDestinationButton destinoId={destino.id} nombre={destino.nombre} />
-                    </div>
-
-                    <details className={styles.editDetails}>
-                      <summary className={styles.editSummary}>
-                        <span className={styles.editSummaryLabel}>
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="m14.5 5.5 4 4M4 20l3.8-.8L19 8a2.8 2.8 0 0 0-4-4L3.8 15.2 3 19Z" />
-                          </svg>
-                          Editar información
-                        </span>
-                        <svg className={styles.editChevron} viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="m7 10 5 5 5-5" />
-                        </svg>
-                      </summary>
-                      <div className={styles.editContent}>
-                        <DestinationForm edificios={edificios} destino={destino} />
-                      </div>
-                    </details>
-                  </article>
-                );
-              })}
-            </div>
-          )}
+          <CatalogoNodos destinos={destinos} edificios={edificios} filtrosIniciales={{ buscar, edificio, piso }} error={error} />
         </section>
       </div>
     </main>

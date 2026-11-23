@@ -3,22 +3,31 @@ import { TrazarForm } from "./trazar-form";
 import type { ConexionExistente, NodoExistente } from "../../components/path-drawer";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
+import { leerTodo } from "@/lib/leer-todo";
 
 export default async function TrazarPasilloPage() {
   await requerirRol("administrador");
   const supabase = await createClient();
   // Los nodos y conexiones ya registrados se dibujan de referencia en el mapa,
-  // para retomar el trazado donde se quedó. Cota explícita como en /admin/grafo.
-  const MAX_FILAS = 5000;
-  const [edificiosRes, nodosRes, conexionesRes] = await Promise.all([
+  // para retomar el trazado donde se quedó. Se leen por páginas porque Supabase
+  // corta cada consulta en 1000 filas.
+  const [edificiosRes, nodosExistentes, conexionesExistentes] = await Promise.all([
     supabase.from("edificios").select("id, nombre").order("nombre"),
-    supabase.from("nodos").select("id, nombre, tipo, piso, lat, lng").not("lat", "is", null).range(0, MAX_FILAS - 1),
-    supabase.from("conexiones").select("nodo_origen_id, nodo_destino_id").range(0, MAX_FILAS - 1),
+    leerTodo<NodoExistente>((desde, hasta) =>
+      supabase.from("nodos").select("id, nombre, tipo, piso, lat, lng").not("lat", "is", null).order("id").range(desde, hasta),
+    ).catch((causa) => {
+      console.error("[trazar] No se pudieron cargar los nodos de referencia:", causa);
+      return [] as NodoExistente[];
+    }),
+    leerTodo<ConexionExistente>((desde, hasta) =>
+      supabase.from("conexiones").select("nodo_origen_id, nodo_destino_id").order("id").range(desde, hasta),
+    ).catch((causa) => {
+      console.error("[trazar] No se pudieron cargar las conexiones de referencia:", causa);
+      return [] as ConexionExistente[];
+    }),
   ]);
   const error = edificiosRes.error;
   const edificios = (edificiosRes.data ?? []) as { id: string; nombre: string }[];
-  const nodosExistentes = (nodosRes.data ?? []) as NodoExistente[];
-  const conexionesExistentes = (conexionesRes.data ?? []) as ConexionExistente[];
 
   return (
     <main className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 lg:px-10">

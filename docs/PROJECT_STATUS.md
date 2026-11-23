@@ -210,6 +210,11 @@ migraciones ya aplicadas para cambiar una base existente.
   con cambio de piso (sube/baja, y por qué escalera o elevador).
 - Los casos sin ruta (nodo sin conexiones, grafo desconectado, destino inalcanzable sin
   escaleras, visita sin nodos asignados) devuelven un motivo y un mensaje para la UI.
+- Listas grandes del grafo: Supabase corta cada consulta en 1000 filas aunque se pida un
+  `.range()` mayor, así que nodos y conexiones se leen con `leerTodo` (`lib/leer-todo.ts`),
+  que pagina hasta traer todo. En `/admin/destinos` y `/admin/conexiones` la búsqueda y
+  los filtros corren en el navegador (sin recargar), se dibujan 40 tarjetas con "Mostrar
+  más" y el formulario de edición de un nodo (con su mapa) solo se monta al abrirlo.
 
 ## Flujo actual de una visita
 

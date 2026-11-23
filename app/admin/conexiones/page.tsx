@@ -1,43 +1,47 @@
 import { ConnectionForm, type NodoOpcion } from "./connection-form";
-import { DeleteConnectionButton } from "./delete-connection-button";
+import { ListaConexiones, type ConexionListada } from "./lista-conexiones";
 import styles from "./conexiones.module.css";
-import { StatCard, StatusBadge } from "../components/admin-ui";
+import { StatCard } from "../components/admin-ui";
+import { leerTodo } from "@/lib/leer-todo";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
-
-type NodoResumen = { nombre: string; piso: number; edificios: { nombre: string } | null };
-type Conexion = {
-  id: string;
-  costo: number | null;
-  bidireccional: boolean;
-  origen: NodoResumen | null;
-  destino: NodoResumen | null;
-};
-
-function etiquetaNodo(nodo: NodoResumen | null) {
-  if (!nodo) return "Nodo no disponible";
-  return `${nodo.nombre} · ${nodo.edificios?.nombre ?? "Sin edificio"} · Piso ${nodo.piso}`;
-}
 
 export default async function ConexionesPage() {
   await requerirRol("administrador");
   const supabase = await createClient();
-  const [nodosResult, conexionesResult] = await Promise.all([
-    supabase
-      .from("nodos")
-      .select("id, nombre, tipo, piso, lat, lng, edificio_id, edificios(nombre)")
-      .order("piso")
-      .order("nombre"),
-    supabase
-      .from("conexiones")
-      .select(
-        "id, costo, bidireccional, origen:nodos!nodo_origen_id(nombre, piso, edificios(nombre)), destino:nodos!nodo_destino_id(nombre, piso, edificios(nombre))",
-      )
-      .order("created_at", { ascending: false }),
-  ]);
 
-  const nodos = (nodosResult.data ?? []) as unknown as NodoOpcion[];
-  const conexiones = (conexionesResult.data ?? []) as unknown as Conexion[];
+  // Se lee todo por páginas: con más de 1000 filas Supabase cortaría la lista
+  // en silencio.
+  let nodos: NodoOpcion[] = [];
+  let conexiones: ConexionListada[] = [];
+  let error = false;
+  try {
+    [nodos, conexiones] = await Promise.all([
+      leerTodo<NodoOpcion>((desde, hasta) =>
+        supabase
+          .from("nodos")
+          .select("id, nombre, tipo, piso, lat, lng, edificio_id, edificios(nombre)")
+          .order("piso")
+          .order("nombre")
+          .order("id")
+          .range(desde, hasta),
+      ),
+      leerTodo<ConexionListada>((desde, hasta) =>
+        supabase
+          .from("conexiones")
+          .select(
+            "id, costo, bidireccional, origen:nodos!nodo_origen_id(nombre, piso, edificios(nombre)), destino:nodos!nodo_destino_id(nombre, piso, edificios(nombre))",
+          )
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(desde, hasta),
+      ),
+    ]);
+  } catch (causa) {
+    console.error("[conexiones] No se pudo cargar el catálogo:", causa);
+    error = true;
+  }
+
   const entrePisos = conexiones.filter((c) => c.origen && c.destino && c.origen.piso !== c.destino.piso).length;
 
   return (
@@ -97,68 +101,7 @@ export default async function ConexionesPage() {
         </section>
 
         <section className={`${styles.panel} ${styles.directoryPanel}`} aria-labelledby="directorio-conexiones-title">
-          <div className={styles.panelHeader}>
-            <div className={styles.panelHeading}>
-              <p className={styles.panelKicker}>Red de navegación</p>
-              <h2 id="directorio-conexiones-title" className={styles.panelTitle}>Conexiones registradas</h2>
-              <p className={styles.panelDescription}>{conexiones.length} en total</p>
-            </div>
-          </div>
-
-          {conexionesResult.error || nodosResult.error ? (
-            <div className={styles.feedback} role="alert">
-              No se pudo cargar el catálogo. Aplica la migración 0006 y verifica la conexión con Supabase.
-            </div>
-          ) : conexiones.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyConnection} aria-hidden="true">
-                <span />
-                <span />
-              </div>
-              <p className={styles.emptyTitle}>No hay conexiones todavía</p>
-              <p className={styles.emptyDescription}>Crea la primera para empezar a armar el grafo.</p>
-            </div>
-          ) : (
-            <div className={styles.connectionList}>
-              {conexiones.map((conexion) => (
-                <article key={conexion.id} className={styles.connectionCard}>
-                  <div className={styles.connectionCardHeader}>
-                    <div className={styles.connectionBadges}>
-                      <StatusBadge tone={conexion.bidireccional ? "success" : "warning"}>
-                        {conexion.bidireccional ? "Bidireccional" : "Un solo sentido"}
-                      </StatusBadge>
-                      {conexion.costo !== null ? (
-                        <span className={styles.costBadge}>Costo {conexion.costo}</span>
-                      ) : null}
-                    </div>
-                    <DeleteConnectionButton conexionId={conexion.id} />
-                  </div>
-
-                  <div className={styles.connectionRoute}>
-                    <div className={styles.nodeSummary}>
-                      <span className={styles.nodeRole}>Origen</span>
-                      <p>{etiquetaNodo(conexion.origen)}</p>
-                    </div>
-
-                    <div className={styles.directionIndicator}>
-                      <svg viewBox="0 0 48 18" aria-hidden="true">
-                        <circle cx="5" cy="9" r="3" />
-                        <path d="M9 9h29" />
-                        {conexion.bidireccional ? <path d="m14 4-5 5 5 5M34 4l5 5-5 5" /> : <path d="m34 4 5 5-5 5" />}
-                        <circle cx="43" cy="9" r="3" />
-                      </svg>
-                      <span>{conexion.bidireccional ? "Ambos sentidos" : "Origen a destino"}</span>
-                    </div>
-
-                    <div className={styles.nodeSummary}>
-                      <span className={styles.nodeRole}>Destino</span>
-                      <p>{etiquetaNodo(conexion.destino)}</p>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
+          <ListaConexiones conexiones={conexiones} error={error} />
         </section>
       </div>
     </main>
