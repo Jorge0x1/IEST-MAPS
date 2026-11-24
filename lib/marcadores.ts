@@ -84,8 +84,6 @@ export function aMarcador(fila: FilaMarcador): MarcadorMapa | null {
 
 // Con el mapa alejado, escaleras y baños saturan: solo se ven de este zoom en adelante.
 const ZOOM_MINIMO_SERVICIOS = 17;
-// Los nombres junto a los iconos, solo de cerca.
-const ZOOM_MINIMO_ETIQUETA = 19;
 
 export function marcadoresVisibles(marcadores: MarcadorMapa[], piso: number, zoom: number): MarcadorMapa[] {
   return marcadores.filter(
@@ -93,8 +91,23 @@ export function marcadoresVisibles(marcadores: MarcadorMapa[], piso: number, zoo
   );
 }
 
-export function mostrarEtiqueta(zoom: number): boolean {
-  return zoom >= ZOOM_MINIMO_ETIQUETA;
+// Iconos propios (public/iconos/*.svg) de escaleras, elevadores y baños. Ya traen su
+// círculo naranja. Los baños se distinguen por el nombre del nodo: "Baño para mujeres",
+// "Baño para hombres" y cualquier otro ("Baño mixto") usa el icono mixto.
+const RUTA_ICONOS = "/iconos";
+
+function sinAcentos(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+export function iconoServicio(clase: ClaseMarcador, nombre: string): string | null {
+  if (clase === "escalera") return `${RUTA_ICONOS}/escaleras.svg`;
+  if (clase === "elevador") return `${RUTA_ICONOS}/elevador.svg`;
+  if (clase !== "bano") return null;
+  const n = sinAcentos(nombre);
+  if (/mujer|dama|femenin/.test(n)) return `${RUTA_ICONOS}/mujer.svg`;
+  if (/hombre|caballero|masculin/.test(n)) return `${RUTA_ICONOS}/hombre.svg`;
+  return `${RUTA_ICONOS}/mixto.svg`;
 }
 
 const COLOR: Record<ClaseMarcador, string> = {
@@ -114,39 +127,36 @@ export function colorMarcador(clase: ClaseMarcador): string {
 }
 
 // Glifos blancos dibujados en un cuadro de -7 a 7 (trazo, salvo los que dicen fill).
-const GLIFO: Record<ClaseMarcador, string> = {
+const GLIFO: Record<CategoriaIcono, string> = {
   comida: '<path d="M-2.6,-4 v3 a1.4,1.4 0 0 0 2.8,0 v-3 M-1.2,-4 v8 M2.4,-4 c-1.4,0 -1.4,4 0,4 v4"/>',
   cafe: '<path d="M-3.6,-1.5 h5.4 v2 a2.7,2.7 0 0 1 -5.4,0 z M1.8,-0.8 h0.8 a1.2,1.2 0 0 1 0,2.4 h-1 M-2.4,-4 q0.6,-0.8 0,-1.4 M0,-4 q0.6,-0.8 0,-1.4 M-4,3.6 h6.6"/>',
   monumento: '<path fill="#fff" stroke="none" d="M0,-4.6 l1.35,2.8 3.05,.45 -2.2,2.15 .52,3.05 -2.72,-1.45 -2.72,1.45 .52,-3.05 -2.2,-2.15 3.05,-.45 z"/>',
   tienda: '<path d="M-3.6,-1.6 h7.2 l-.6,5.4 h-6 z M-1.6,-1.6 v-1.2 a1.6,1.6 0 0 1 3.2,0 v1.2"/>',
   deporte: '<circle r="3.9"/><path d="M0,-1.6 l1.5,1.1 -.6,1.8 h-1.8 l-.6,-1.8 z M0,-1.6 v-2.3 M1.5,-.5 l2.2,-.7 M.9,1.3 l1.3,1.9 M-.9,1.3 l-1.3,1.9 M-1.5,-.5 l-2.2,-.7"/>',
   servicio: '<path d="M0,-.6 v4"/><circle cy="-3" r=".5" fill="#fff"/>',
-  escalera: '<path d="M-4,3.5 h2.6 v-2.4 h2.6 v-2.4 h2.6 v-2.4 h.9"/>',
-  elevador: '<rect x="-3.6" y="-4.2" width="7.2" height="8.4" rx="1"/><path d="M-1.6,-.6 l1.6,-2 1.6,2 M-1.6,.8 l1.6,2 1.6,-2"/>',
-  bano: '<circle cx="-2.2" cy="-3.2" r=".9" fill="#fff"/><circle cx="2.2" cy="-3.2" r=".9" fill="#fff"/><path d="M-2.2,-1.6 v5.2 M-3.4,-.6 h2.4 M2.2,-1.6 l-1.4,3.4 h2.8 z M1.6,1.8 v1.8 M2.8,1.8 v1.8 M0,-4.4 v8.4"/>',
 };
 
 export const TAMANO_MARCADOR = 28;
 
 // HTML del marcador para un L.divIcon (28×28 px, anclado al centro del círculo).
-// El nombre va escapado: viene de la base.
-export function htmlMarcador(m: MarcadorMapa, conEtiqueta: boolean): string {
-  const color = COLOR[m.clase];
+// No lleva el nombre escrito (se encimaban): se ve al tocar el icono (popup del mapa)
+// y, en escritorio, en el `title`. El nombre va escapado: viene de la base.
+export function htmlMarcador(m: MarcadorMapa): string {
   const t = TAMANO_MARCADOR;
-  const circulo = m.logoUrl
+  const propio = m.logoUrl ? null : iconoServicio(m.clase, m.nombre);
+  const color = COLOR[m.clase];
+  const circulo = propio
+    ? `<img src="${propio}" alt="" width="${t}" height="${t}" style="display:block;width:${t}px;height:${t}px;` +
+      `border-radius:50%;box-shadow:0 1px 4px rgb(0 0 0 / .3)">`
+    : m.logoUrl
     ? `<span style="display:block;width:${t}px;height:${t}px;border-radius:50%;background:#fff;border:2px solid ${color};` +
       `box-shadow:0 1px 4px rgb(0 0 0 / .3);overflow:hidden;box-sizing:border-box">` +
       `<img src="${escaparHtml(m.logoUrl)}" alt="" style="width:100%;height:100%;object-fit:contain;padding:2px;box-sizing:border-box"></span>`
     : `<svg width="${t}" height="${t}" viewBox="-9 -9 18 18" aria-hidden="true" style="display:block;overflow:visible">` +
       `<circle r="8.2" cy=".8" fill="#000" opacity=".18"/>` +
       `<circle r="7.2" fill="${color}" stroke="#fff" stroke-width="1.4"/>` +
-      `<g fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${GLIFO[m.clase]}</g></svg>`;
-  const etiqueta = conEtiqueta
-    ? `<span style="position:absolute;left:${t + 4}px;top:50%;transform:translateY(-50%);white-space:nowrap;` +
-      `font:600 12px/1.2 var(--font-geist-sans),system-ui,sans-serif;color:#2f3033;` +
-      `text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff">${escaparHtml(m.nombre)}</span>`
-    : "";
-  return `<div style="position:relative;width:${t}px;height:${t}px" title="${escaparHtml(m.nombre)}">${circulo}${etiqueta}</div>`;
+      `<g fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${GLIFO[m.clase as CategoriaIcono]}</g></svg>`;
+  return `<div style="position:relative;width:${t}px;height:${t}px" title="${escaparHtml(m.nombre)}">${circulo}</div>`;
 }
 
 export type IconoYLogo = { ok: true; icono: CategoriaIcono | null; logo_path: string | null } | { ok: false; error: string };

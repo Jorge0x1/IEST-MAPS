@@ -6,9 +6,9 @@ import {
   aMarcador,
   colorMarcador,
   htmlMarcador,
+  iconoServicio,
   leerIconoYLogo,
   marcadoresVisibles,
-  mostrarEtiqueta,
   type MarcadorMapa,
 } from "./marcadores.ts";
 
@@ -50,7 +50,7 @@ describe("aMarcador", () => {
   });
 });
 
-describe("marcadoresVisibles y mostrarEtiqueta", () => {
+describe("marcadoresVisibles", () => {
   const m = (clase: MarcadorMapa["clase"], piso = 1): MarcadorMapa => ({
     id: `${clase}${piso}`, nombre: clase, clase, piso, lat: 0, lng: 0, buscable: true, logoUrl: null,
   });
@@ -62,26 +62,42 @@ describe("marcadoresVisibles y mostrarEtiqueta", () => {
     assert.deepEqual(marcadoresVisibles(todos, 1, 16).map((x) => x.clase), ["comida"]);
     assert.deepEqual(marcadoresVisibles(todos, 1, 17).map((x) => x.clase), ["comida", "escalera", "bano"]);
   });
-  it("etiqueta solo con zoom >= 19", () => {
-    assert.equal(mostrarEtiqueta(18), false);
-    assert.equal(mostrarEtiqueta(19), true);
+});
+
+describe("iconoServicio", () => {
+  it("escaleras y elevadores usan su icono propio", () => {
+    assert.equal(iconoServicio("escalera", "Escaleras edificio 100"), "/iconos/escaleras.svg");
+    assert.equal(iconoServicio("elevador", "Elevador cides 1er piso"), "/iconos/elevador.svg");
+  });
+  it("el baño se elige por el nombre, con o sin acentos y mayúsculas", () => {
+    assert.equal(iconoServicio("bano", "Baño para mujeres"), "/iconos/mujer.svg");
+    assert.equal(iconoServicio("bano", "BAÑO PARA HOMBRES"), "/iconos/hombre.svg");
+    assert.equal(iconoServicio("bano", "Baño mixto"), "/iconos/mixto.svg");
+    assert.equal(iconoServicio("bano", "Sanitarios"), "/iconos/mixto.svg");
+  });
+  it("las categorías con glifo no tienen icono propio", () => {
+    assert.equal(iconoServicio("comida", "Subway"), null);
   });
 });
 
 describe("htmlMarcador", () => {
   const base: MarcadorMapa = { id: "x", nombre: '<b>"x"', clase: "comida", piso: 1, lat: 0, lng: 0, buscable: true, logoUrl: null };
   it("escapa el nombre", () => {
-    const html = htmlMarcador(base, true);
+    const html = htmlMarcador(base);
     assert.ok(html.includes("&lt;b&gt;&quot;x&quot;"));
     assert.ok(!html.includes("<b>"));
   });
-  it("sin etiqueta no muestra el nombre (solo queda en el title)", () => {
-    const html = htmlMarcador(base, false);
+  it("nunca escribe el nombre junto al icono (solo queda en el title)", () => {
+    const html = htmlMarcador(base);
     assert.ok(!html.includes("white-space:nowrap"));
     assert.ok(html.includes('title="&lt;b&gt;&quot;x&quot;"'));
   });
+  it("escaleras, elevadores y baños usan <img> con su icono", () => {
+    assert.ok(htmlMarcador({ ...base, clase: "escalera", nombre: "Escaleras 1" }).includes('<img src="/iconos/escaleras.svg"'));
+    assert.ok(htmlMarcador({ ...base, clase: "bano", nombre: "Baño para mujeres" }).includes('src="/iconos/mujer.svg"'));
+  });
   it("con logo usa <img> con la URL escapada", () => {
-    const html = htmlMarcador({ ...base, logoUrl: "https://x/a.png?b=1&c=2" }, false);
+    const html = htmlMarcador({ ...base, logoUrl: "https://x/a.png?b=1&c=2" });
     assert.ok(html.includes('<img src="https://x/a.png?b=1&amp;c=2"'));
   });
   it("colores del spec", () => {

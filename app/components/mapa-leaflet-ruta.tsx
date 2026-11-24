@@ -7,7 +7,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import type { PuntoMapa, RolPunto } from "@/lib/rutas/mapa";
 import type { Lectura } from "@/lib/ubicacion";
-import { htmlMarcador, marcadoresVisibles, mostrarEtiqueta, TAMANO_MARCADOR, type MarcadorMapa } from "@/lib/marcadores";
+import { htmlMarcador, marcadoresVisibles, TAMANO_MARCADOR, type MarcadorMapa } from "@/lib/marcadores";
+import { PISOS_REGISTRADOS } from "@/lib/pisos";
 import { CENTRO_CAMPUS, LIMITES_CAMPUS, agregarCapaBase, escaparHtml, etiquetaPiso, PISO_PLANTA_BAJA, type CapaBase } from "./mapa-base";
 
 const COLOR_RUTA = "#ff5900";
@@ -73,8 +74,14 @@ type Props = {
   pisoForzado?: number | null;
   // Iconos del campus (RPC `marcadores_mapa`). Se ven los del piso activo.
   marcadores?: MarcadorMapa[];
-  // Al tocar un icono de un destino buscable. Sin callback, el toque solo muestra el nombre.
+  // Al tocar "Ir aquí" en el nombre de un icono de destino buscable. Sin callback, el
+  // toque solo muestra el nombre.
   onMarcador?: (id: string) => void;
+  // Piso que ve (y en el que está) el alumno antes de pedir una ruta. Si no es null, el
+  // mapa lo obedece, el selector lista todos los pisos con plano y cada toque llama a
+  // `onPisoVista`. Con null, el selector sigue siendo el de los pisos de la ruta.
+  pisoVista?: number | null;
+  onPisoVista?: (piso: number) => void;
 };
 
 export default function MapaLeafletRuta({
@@ -89,6 +96,8 @@ export default function MapaLeafletRuta({
   pisoForzado = null,
   marcadores = SIN_MARCADORES,
   onMarcador,
+  pisoVista = null,
+  onPisoVista,
 }: Props) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
@@ -103,6 +112,13 @@ export default function MapaLeafletRuta({
     onMarcadorRef.current = onMarcador;
   }, [onMarcador]);
   const conAccion = onMarcador !== undefined;
+  const onPisoVistaRef = useRef(onPisoVista);
+  useEffect(() => {
+    onPisoVistaRef.current = onPisoVista;
+  }, [onPisoVista]);
+  // Para no mover el encuadre al cambiar de piso sin ruta: solo se recentra al
+  // quitar una ruta que había.
+  const habiaRutaRef = useRef(false);
   // El botón "centrar en mí" lee la lectura más reciente sin recrearse.
   const ubicacionRef = useRef(ubicacion);
   useEffect(() => {
@@ -124,6 +140,7 @@ export default function MapaLeafletRuta({
   const [elegido, setElegido] = useState<{ puntos: PuntoMapa[]; piso: number } | null>(null);
   const pisoActivo =
     pisoForzado ??
+    pisoVista ??
     (elegido && elegido.puntos === puntos && pisos.includes(elegido.piso) ? elegido.piso : (pisos[0] ?? PISO_PLANTA_BAJA));
   // Los márgenes se leen al encuadrar, pero cambiarlos no debe re-encuadrar.
   const margenesRef = useRef({ margenInferior, margenSuperior, margenIzquierdo });
@@ -186,29 +203,44 @@ export default function MapaLeafletRuta({
     };
   }, []);
 
-  // Iconos del campus del piso activo; con el zoom cambia qué se ve y si llevan nombre.
+  // Iconos del campus del piso activo (sin nombre escrito: se encimaban). Al tocar uno
+  // se abre un globo con su nombre y, si es un destino buscable, el botón "Ir aquí".
   useEffect(() => {
     const capa = capaMarcadoresRef.current;
     if (!capa) return;
     capa.clearLayers();
-    const conEtiqueta = mostrarEtiqueta(zoom);
     const mitad = TAMANO_MARCADOR / 2;
     for (const m of marcadoresVisibles(marcadores, pisoActivo, zoom)) {
       const marcador = L.marker([m.lat, m.lng], {
         pane: PANEL_MARCADORES,
         keyboard: false,
         icon: L.divIcon({
-          html: htmlMarcador(m, conEtiqueta),
+          html: htmlMarcador(m),
           className: "",
           iconSize: [TAMANO_MARCADOR, TAMANO_MARCADOR],
           iconAnchor: [mitad, mitad],
         }),
       });
+      // El contenido se arma con nodos del DOM: el nombre viene de la base y así
+      // nunca se interpreta como HTML.
+      const contenido = document.createElement("div");
+      contenido.style.cssText = "display:grid;gap:6px;justify-items:start;font:600 13px/1.25 sans-serif;color:#2f3033";
+      const nombre = document.createElement("span");
+      nombre.textContent = m.nombre;
+      contenido.appendChild(nombre);
       if (conAccion && m.buscable) {
-        marcador.on("click", () => onMarcadorRef.current?.(m.id));
-      } else if (!conEtiqueta) {
-        marcador.bindTooltip(escaparHtml(m.nombre), { direction: "top", offset: [0, -mitad] });
+        const ir = document.createElement("button");
+        ir.type = "button";
+        ir.textContent = "Ir aquí";
+        ir.style.cssText =
+          "cursor:pointer;padding:5px 10px;border-radius:8px;border:0;background:#ff5900;color:#fff;font:700 12px/1 sans-serif";
+        ir.addEventListener("click", () => {
+          marcador.closePopup();
+          onMarcadorRef.current?.(m.id);
+        });
+        contenido.appendChild(ir);
       }
+      marcador.bindPopup(contenido, { closeButton: false, offset: [0, -mitad + 4], autoPanPadding: [24, 90] });
       marcador.addTo(capa);
     }
   }, [marcadores, pisoActivo, zoom, conAccion]);
@@ -223,7 +255,8 @@ export default function MapaLeafletRuta({
   // Leaflet arriba a la derecha, bajo la barra de búsqueda si la hay.
   useEffect(() => {
     const mapa = mapaRef.current;
-    if (!mapa || pisos.length < 2 || pisoForzado !== null) return;
+    const lista = pisoVista !== null ? PISOS_REGISTRADOS : pisos;
+    if (!mapa || lista.length < 2 || pisoForzado !== null) return;
     const control = new L.Control({ position: "topright" });
     control.onAdd = () => {
       const caja = L.DomUtil.create("div", "");
@@ -231,7 +264,7 @@ export default function MapaLeafletRuta({
       caja.setAttribute("aria-label", "Piso del mapa");
       caja.style.cssText =
         `display:flex;flex-direction:column;gap:4px;margin-top:${margenesRef.current.margenSuperior + 10}px;margin-right:10px;`;
-      for (const piso of pisos) {
+      for (const piso of lista) {
         const boton = L.DomUtil.create("button", "", caja);
         boton.type = "button";
         boton.textContent = etiquetaPiso(piso);
@@ -243,7 +276,10 @@ export default function MapaLeafletRuta({
           (activo
             ? "background:#0369a1;color:#fff;border:2px solid #0369a1;"
             : "background:#fff;color:#2f3033;border:2px solid #ffffff;");
-        L.DomEvent.on(boton, "click", () => setElegido({ puntos, piso }));
+        L.DomEvent.on(boton, "click", () => {
+          if (pisoVista !== null) onPisoVistaRef.current?.(piso);
+          else setElegido({ puntos, piso });
+        });
       }
       L.DomEvent.disableClickPropagation(caja);
       return caja;
@@ -252,7 +288,7 @@ export default function MapaLeafletRuta({
     return () => {
       control.remove();
     };
-  }, [pisos, pisoActivo, puntos, pisoForzado]);
+  }, [pisos, pisoActivo, puntos, pisoForzado, pisoVista]);
 
   useEffect(() => {
     const mapa = mapaRef.current;
@@ -335,12 +371,16 @@ export default function MapaLeafletRuta({
     const capa = capaRef.current;
     if (!mapa || !capa) return;
     capa.clearLayers();
+    const habiaRuta = habiaRutaRef.current;
+    habiaRutaRef.current = puntos.length > 0;
     // Solo se dibuja el tramo de la ruta que está en el piso activo.
     const visibles = puntos.filter((p) => p.piso === pisoActivo);
     // Navegando, el encuadre lo manda la ubicación (no se re-encuadra la ruta).
     const siguiendo = seguirRef.current && siguiendoRef.current && ubicacionRef.current !== null;
     if (visibles.length === 0) {
-      if (!siguiendo) mapa.setView(CENTRO_CAMPUS, 18);
+      // Sin ruta (ni una que se acaba de quitar) no se mueve el mapa: cambiar de piso
+      // no debe devolverlo al centro ni cambiar el zoom.
+      if (!siguiendo && (puntos.length > 0 || habiaRuta)) mapa.setView(CENTRO_CAMPUS, 18);
       return;
     }
 

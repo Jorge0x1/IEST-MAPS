@@ -73,8 +73,17 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
   SQL); si falta alguna coordenada, peso fijo 1. Nunca falla por datos incompletos.
 - **GPS y pisos:** el GPS no detecta cambio de piso. El cambio de piso se indica en la
   ruta y se confirma manualmente.
+- **Piso de salida (alumno):** el alumno elige en qué piso está (selector del mapa y
+  botones del panel; `pisoActual` en `navegador.tsx`, por defecto piso 1). El mapa muestra
+  ese piso, la lista "Sales de" solo ofrece puntos de ese piso y, con GPS, el servidor
+  busca el nodo más cercano de ese piso (`piso` en `calcularRutaDesdeUbicacion`, validado
+  con `pisoRegistrado`). Cambiar de piso descarta la ruta abierta.
+- **Iconos del mapa:** escaleras, elevadores y baños usan los SVG de `public/iconos/`
+  (baños: mujer/hombre/mixto según el nombre del nodo, `iconoServicio()` en
+  `lib/marcadores.ts`). Los marcadores no escriben su nombre: al tocarlos sale un globo con
+  el nombre y, si el destino es buscable, el botón "Ir aquí".
 - **GPS como origen:** `calcularRutaDesdeUbicacion` (servidor) elige el nodo conectado
-  más cercano del piso 1 (`lib/rutas/cercano.ts`: precisión ≤ 50 m, nodo a ≤ 150 m).
+  más cercano del piso elegido, por defecto el 1 (`lib/rutas/cercano.ts`: precisión ≤ 50 m, nodo a ≤ 150 m).
   La ubicación nunca se guarda ni se loguea. La lista de puntos de partida se conserva
   siempre como alternativa. Geolocation solo funciona en https (Vercel o localhost).
   Cada lectura se suaviza (`suavizar`: promedio ponderado por precisión, 30 s de

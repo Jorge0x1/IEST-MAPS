@@ -2,8 +2,10 @@
 // Funciones puras (sin red): las usa `calcularRutaDesdeUbicacion` en
 // lib/rutas/actions.ts y se prueban con `npm test`.
 //
-// El GPS no detecta el piso, así que solo se consideran nodos del piso 1
-// (planta baja). Los umbrales se ajustan con pruebas en el campus.
+// El GPS no detecta el piso: se consideran solo los nodos del piso que la persona
+// dice que pisa (por defecto el 1, planta baja). Los planos de todos los pisos
+// comparten marco, así que la distancia horizontal sirve en cualquiera.
+// Los umbrales se ajustan con pruebas en el campus.
 import { distanciaMetros } from "../geo.ts";
 import { PRECISION_MAXIMA_M } from "../ubicacion.ts";
 import type { ConexionGrafo, NodoGrafo, OpcionesRuta } from "./dijkstra.ts";
@@ -37,6 +39,7 @@ export function nodoMasCercano<N extends NodoGrafo>(
   nodos: N[],
   conexiones: ConexionGrafo[],
   opciones: OpcionesRuta,
+  piso: number = PISO_GPS,
 ): ResultadoCercano<N> {
   if (posicion.precision > PRECISION_MAXIMA_M) return { ok: false, motivo: "ubicacion_imprecisa" };
 
@@ -49,7 +52,7 @@ export function nodoMasCercano<N extends NodoGrafo>(
   let mejor: { nodo: N; distanciaMetros: number } | null = null;
   for (const nodo of nodos) {
     if (nodo.lat === null || nodo.lng === null) continue;
-    if (nodo.piso !== PISO_GPS || !conectados.has(nodo.id)) continue;
+    if (nodo.piso !== piso || !conectados.has(nodo.id)) continue;
     // Dijkstra excluye las escaleras con esta opción: no se puede salir de una.
     if (opciones.evitarEscaleras && nodo.tipo === "escalera") continue;
     const distancia = distanciaMetros(posicion.lat, posicion.lng, nodo.lat, nodo.lng);

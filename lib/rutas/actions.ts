@@ -27,7 +27,8 @@ import {
   type NodoGrafo,
   type OpcionesRuta,
 } from "./dijkstra";
-import { nodoMasCercano, validarPosicion } from "./cercano";
+import { nodoMasCercano, PISO_GPS, validarPosicion } from "./cercano";
+import { pisoRegistrado } from "../pisos";
 
 export type CambioPiso = {
   desde: number;
@@ -278,11 +279,13 @@ function sinRutaPorUbicacion(motivo: MotivoUbicacion): ResultadoRuta {
 }
 
 // Ruta desde la ubicación GPS del alumno hasta un destino. Parte del nodo
-// conectado más cercano del piso 1 (el GPS no detecta pisos).
+// conectado más cercano del piso en que el alumno dice estar (el GPS no detecta
+// pisos; sin `piso` se usa el 1).
 export async function calcularRutaDesdeUbicacion(
   posicion: unknown,
   destinoId: string,
   opciones?: OpcionesRuta,
+  piso?: number,
 ): Promise<ResultadoRuta> {
   const sesion = await obtenerSesionConPerfil();
   if (!sesion) {
@@ -294,11 +297,17 @@ export async function calcularRutaDesdeUbicacion(
     return { ok: false, motivo: "destino_inexistente", mensaje: "Destino inválido." };
   }
 
+  // El piso llega del navegador: solo se aceptan pisos con plano.
+  const pisoLeido = piso === undefined ? PISO_GPS : piso;
+  if (typeof pisoLeido !== "number" || !pisoRegistrado(pisoLeido)) {
+    return { ok: false, motivo: "origen_inexistente", mensaje: "Piso inválido." };
+  }
+
   const grafo = await cargarGrafo();
   if (!grafo) return ERROR_GRAFO;
 
   const opcionesLeidas = leerOpciones(opciones);
-  const cercano = nodoMasCercano(valida, grafo.nodos, grafo.conexiones, opcionesLeidas);
+  const cercano = nodoMasCercano(valida, grafo.nodos, grafo.conexiones, opcionesLeidas, pisoLeido);
   if (!cercano.ok) return sinRutaPorUbicacion(cercano.motivo);
   if (cercano.nodo.id === destinoId) return sinRutaPorUbicacion("ya_en_destino");
 

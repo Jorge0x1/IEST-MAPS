@@ -81,6 +81,7 @@ export default async function UsuarioDashboardPage() {
   const entradas: EntradaAlumno[] = entradasLeidas.map((fila) => ({
     id: fila.id,
     nombre: fila.nombre,
+    piso: fila.piso,
     edificioNombre: edificioDe(fila),
   }));
 

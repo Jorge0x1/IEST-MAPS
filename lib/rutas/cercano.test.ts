@@ -97,3 +97,23 @@ describe("nodoMasCercano", () => {
     assert.deepEqual(nodoMasCercano(pos(), nodos, [conexion("piso3", "p3b")], SIN_OPCIONES), { ok: false, motivo: "sin_candidatos" });
   });
 });
+
+describe("nodoMasCercano por piso", () => {
+  const nodos = [
+    nodo("p1", 0.0004, { piso: 1 }),
+    nodo("p2", 0.0006, { piso: 2 }),
+  ];
+  const conexiones = [conexion("p1", "p2")];
+  it("sin piso usa el 1", () => {
+    const r = nodoMasCercano(pos(), nodos, conexiones, SIN_OPCIONES);
+    assert.equal(r.ok && r.nodo.id, "p1");
+  });
+  it("con piso elige solo entre los nodos de ese piso, aunque haya otro más cerca", () => {
+    const r = nodoMasCercano(pos(), nodos, conexiones, SIN_OPCIONES, 2);
+    assert.equal(r.ok && r.nodo.id, "p2");
+  });
+  it("un piso sin nodos conectados no tiene candidatos", () => {
+    const r = nodoMasCercano(pos(), nodos, conexiones, SIN_OPCIONES, 3);
+    assert.deepEqual(r, { ok: false, motivo: "sin_candidatos" });
+  });
+});

@@ -17,6 +17,7 @@ import { ModoNavegacion } from "./modo-navegacion";
 import { lecturaUtil, mensajeUbicacion } from "@/lib/ubicacion";
 import { MenuCuenta } from "./menu-cuenta";
 import type { MarcadorMapa } from "@/lib/marcadores";
+import { etiquetaPiso, PISO_PLANTA_BAJA, PISOS_REGISTRADOS } from "@/lib/pisos";
 
 // Leaflet usa `window`: solo se carga en el navegador.
 const MapaLeafletRuta = dynamic(() => import("@/app/components/mapa-leaflet-ruta"), {
@@ -38,6 +39,7 @@ export type DestinoAlumno = {
 export type EntradaAlumno = {
   id: string;
   nombre: string;
+  piso: number;
   edificioNombre: string | null;
 };
 
@@ -59,15 +61,17 @@ function lugar(edificio: string | null, piso: number) {
 type OpcionOrigen = { id: string; nombre: string; detalle: string | null };
 type GrupoOrigen = { etiqueta: string; opciones: OpcionOrigen[] };
 
-// Puntos de partida de la lista: primero las entradas y luego el resto de los
-// destinos buscables agrupados por edificio. "Mi ubicación" (GPS) va aparte,
-// antes de estos grupos, y la lista sigue disponible si no hay GPS.
-function agruparOrigenes(entradas: EntradaAlumno[], destinos: DestinoAlumno[]): GrupoOrigen[] {
+// Puntos de partida de la lista que están en el piso donde dice estar el alumno:
+// primero las entradas y luego el resto de los destinos buscables agrupados por
+// edificio. "Mi ubicación" (GPS) va aparte, antes de estos grupos, y la lista sigue
+// disponible si no hay GPS.
+function agruparOrigenes(entradas: EntradaAlumno[], destinos: DestinoAlumno[], piso: number): GrupoOrigen[] {
   const grupos: GrupoOrigen[] = [];
-  if (entradas.length > 0) {
+  const entradasDelPiso = entradas.filter((e) => e.piso === piso);
+  if (entradasDelPiso.length > 0) {
     grupos.push({
       etiqueta: "Entradas",
-      opciones: entradas.map((e) => ({
+      opciones: entradasDelPiso.map((e) => ({
         id: e.id,
         nombre: e.nombre,
         detalle: e.edificioNombre && e.edificioNombre !== e.nombre ? e.edificioNombre : null,
@@ -78,7 +82,7 @@ function agruparOrigenes(entradas: EntradaAlumno[], destinos: DestinoAlumno[]): 
   const idsEntrada = new Set(entradas.map((e) => e.id));
   const porEdificio = new Map<string, OpcionOrigen[]>();
   for (const d of destinos) {
-    if (idsEntrada.has(d.id)) continue;
+    if (idsEntrada.has(d.id) || d.piso !== piso) continue;
     const clave = d.edificioNombre ?? "Sin edificio";
     const lista = porEdificio.get(clave) ?? [];
     lista.push({ id: d.id, nombre: d.nombre, detalle: `Piso ${d.piso}` });
@@ -95,6 +99,8 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
   const [destino, setDestino] = useState<DestinoAlumno | null>(null);
   // null = el alumno no ha elegido: se usa su ubicación si hay, si no la primera entrada.
   const [origenElegido, setOrigenElegido] = useState<string | null>(null);
+  // Piso en el que el alumno dice estar: el mapa lo muestra y de ahí sale la ruta.
+  const [pisoActual, setPisoActual] = useState(PISO_PLANTA_BAJA);
   const ubicacion = useUbicacion();
   // `lectura` se dibuja en el mapa aunque sea imprecisa; solo una lectura útil
   // (precisión ≤ 50 m) se ofrece como punto de partida.
@@ -134,19 +140,22 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
     return ajustada.ajustada ? { ...lectura, lat: ajustada.lat, lng: ajustada.lng } : lectura;
   }, [lectura, puntos]);
 
-  const gruposOrigen = useMemo(() => agruparOrigenes(entradas, destinos), [entradas, destinos]);
+  const gruposOrigen = useMemo(() => agruparOrigenes(entradas, destinos, pisoActual), [entradas, destinos, pisoActual]);
+  const opcionesOrigen = useMemo(() => gruposOrigen.flatMap((g) => g.opciones), [gruposOrigen]);
   // Origen efectivo: si se eligió "Mi ubicación" (o no se eligió nada) y no hay
-  // lectura, se cae a la primera entrada sin perder la elección.
-  const primeraEntrada = entradas[0]?.id ?? "";
+  // lectura, se cae a la primera opción del piso sin perder la elección. Un punto
+  // elegido en otro piso deja de valer al cambiar de piso.
+  const primeraOpcion = opcionesOrigen[0]?.id ?? "";
+  const eleccion =
+    origenElegido === ORIGEN_GPS || (origenElegido !== null && opcionesOrigen.some((o) => o.id === origenElegido))
+      ? origenElegido
+      : null;
   const origenId =
-    origenElegido === null
-      ? gpsUtil ? ORIGEN_GPS : primeraEntrada
-      : origenElegido === ORIGEN_GPS && !gpsUtil ? primeraEntrada : origenElegido;
+    eleccion === null
+      ? gpsUtil ? ORIGEN_GPS : primeraOpcion
+      : eleccion === ORIGEN_GPS && !gpsUtil ? primeraOpcion : eleccion;
   const usandoGps = origenId === ORIGEN_GPS;
-  const origen = useMemo(
-    () => gruposOrigen.flatMap((g) => g.opciones).find((o) => o.id === origenId) ?? null,
-    [gruposOrigen, origenId],
-  );
+  const origen = useMemo(() => opcionesOrigen.find((o) => o.id === origenId) ?? null, [opcionesOrigen, origenId]);
   const mismoPunto = destino !== null && !usandoGps && destino.id === origenId;
 
   function empezarACaminar() {
@@ -209,6 +218,15 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
     setRuta(null);
   }
 
+  // Cambiar de piso invalida la ruta mostrada: la salida cambia de piso.
+  function cambiarPiso(piso: number) {
+    if (piso === pisoActual) return;
+    solicitud.current++;
+    salirDeNavegacion();
+    setPisoActual(piso);
+    setRuta(null);
+  }
+
   function cambiarEscaleras(valor: boolean) {
     solicitud.current++;
     salirDeNavegacion();
@@ -223,13 +241,14 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
     const inicio = origenId;
     const fin = destino.id;
     // Se copia la lectura del momento: la ubicación puede cambiar mientras se calcula.
+    const pisoSalida = pisoActual;
     const posicion = usandoGps && lectura ? { lat: lectura.lat, lng: lectura.lng, precision: lectura.precision } : null;
     const desde = origen?.nombre ?? null;
     startTransition(async () => {
       let resultado: ResultadoRuta;
       try {
         resultado = posicion
-          ? await calcularRutaDesdeUbicacion(posicion, fin, opciones)
+          ? await calcularRutaDesdeUbicacion(posicion, fin, opciones, pisoSalida)
           : await calcularRuta(inicio, fin, opciones);
       } catch {
         resultado = { ok: false, motivo: "error_servidor", mensaje: "No pudimos calcular la ruta. Revisa tu conexión e intenta de nuevo." };
@@ -268,6 +287,8 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
           pisoForzado={enNavegacion ? pisoNavegacion : null}
           marcadores={marcadores}
           onMarcador={enNavegacion ? undefined : elegirDesdeMapa}
+          pisoVista={ruta?.ok ? null : pisoActual}
+          onPisoVista={cambiarPiso}
         />
       </div>
 
@@ -429,8 +450,29 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
               <DetalleDestino nombre={destino.nombre} descripcion={destino.descripcion} fotoUrl={destino.fotoUrl} />
               {destino.alias.length > 0 ? <p className="text-sm text-slate-500">También conocido como: {destino.alias.join(", ")}</p> : null}
 
-              {gruposOrigen.length === 0 ? (
-                <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Aún no hay puntos registrados en el mapa, así que no se puede calcular una ruta.</p>
+              <div role="group" aria-label="Piso en el que estás" className="grid gap-1.5 text-sm font-semibold text-slate-700">
+                Estás en el piso
+                <div className="flex flex-wrap gap-2">
+                  {PISOS_REGISTRADOS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => cambiarPiso(p)}
+                      aria-pressed={p === pisoActual}
+                      className={
+                        p === pisoActual
+                          ? "min-w-14 rounded-xl border-2 border-[var(--brand-primary)] bg-[var(--brand-primary)] px-3 py-2 text-sm font-bold text-white"
+                          : "min-w-14 rounded-xl border-2 border-[var(--border-strong)] bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                      }
+                    >
+                      {etiquetaPiso(p)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {gruposOrigen.length === 0 && !gpsUtil ? (
+                <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Aún no hay puntos de partida registrados en {etiquetaPiso(pisoActual).toLowerCase()}. Elige otro piso o activa tu ubicación.</p>
               ) : (
                 <>
                   <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
@@ -456,7 +498,7 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
                           ? `Tu ubicación: precisión ±${Math.round(lectura.precision)} m.`
                           : `Tu ubicación es imprecisa (±${Math.round(lectura.precision)} m) para usarla como punto de partida.`
                         : mensajeUbicacion(ubicacion)}{" "}
-                      También puede ser una entrada o cualquier salón, oficina o servicio.
+                      También puede ser una entrada o cualquier salón, oficina o servicio de este piso.
                     </span>
                   </label>
 
