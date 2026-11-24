@@ -56,6 +56,7 @@ export function ModoNavegacion({
   destinoNombre,
   destinoLugar,
   evitarEscaleras,
+  evitarElevadores = false,
   avisos,
   onRutaNueva,
   onPiso,
@@ -68,6 +69,8 @@ export function ModoNavegacion({
   destinoNombre: string;
   destinoLugar: string;
   evitarEscaleras: boolean;
+  // Evacuación: el recálculo tampoco usa elevadores.
+  evitarElevadores?: boolean;
   avisos: Avisos;
   onRutaNueva: (pasos: PasoRutaDetallado[]) => void;
   onPiso: (piso: number) => void;
@@ -95,10 +98,11 @@ export function ModoNavegacion({
 
   // Datos que leen los efectos sin volver a suscribirse.
   const lecturaRef = useRef(lectura);
-  const propsRef = useRef({ destinoId, evitarEscaleras, onRutaNueva, avisar: avisos.avisar });
+  const pisoDelPaso = pisoActual(nav.estado);
+  const propsRef = useRef({ destinoId, evitarEscaleras, evitarElevadores, pisoDelPaso, onRutaNueva, avisar: avisos.avisar });
   useEffect(() => {
     lecturaRef.current = lectura;
-    propsRef.current = { destinoId, evitarEscaleras, onRutaNueva, avisar: avisos.avisar };
+    propsRef.current = { destinoId, evitarEscaleras, evitarElevadores, pisoDelPaso, onRutaNueva, avisar: avisos.avisar };
   });
 
   const montadoRef = useRef(true);
@@ -121,8 +125,14 @@ export function ModoNavegacion({
       }
       const l = lecturaRef.current;
       if (!l) continue;
-      const { destinoId: destino, evitarEscaleras: sinEscaleras } = propsRef.current;
-      calcularRutaDesdeUbicacion({ lat: l.lat, lng: l.lng, precision: l.precision }, destino, { evitarEscaleras: sinEscaleras })
+      const { destinoId: destino, evitarEscaleras: sinEscaleras, evitarElevadores: sinElevadores, pisoDelPaso: pisoRecalculo } = propsRef.current;
+      calcularRutaDesdeUbicacion(
+        { lat: l.lat, lng: l.lng, precision: l.precision },
+        destino,
+        { evitarEscaleras: sinEscaleras, evitarElevadores: sinElevadores },
+        // Se recalcula desde el piso del paso actual, no siempre desde la planta baja.
+        pisoRecalculo,
+      )
         .then((resultado) => {
           if (!montadoRef.current) return;
           if (resultado.ok) {

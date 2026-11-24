@@ -20,7 +20,16 @@ export const ETIQUETA_ICONO: Record<CategoriaIcono, string> = {
 
 const TIPOS_CON_ICONO = ["escalera", "elevador", "bano"] as const;
 type TipoConIcono = (typeof TIPOS_CON_ICONO)[number];
-export type ClaseMarcador = CategoriaIcono | TipoConIcono;
+
+// Evacuación (`nodos.evacuacion`, migración 0012): salidas de emergencia y puntos de reunión.
+export const VALORES_EVACUACION = ["salida", "punto_reunion"] as const;
+export type Evacuacion = (typeof VALORES_EVACUACION)[number];
+export const ETIQUETA_EVACUACION: Record<Evacuacion, string> = {
+  salida: "Salida de emergencia",
+  punto_reunion: "Punto de reunión",
+};
+
+export type ClaseMarcador = CategoriaIcono | TipoConIcono | Evacuacion;
 
 export type MarcadorMapa = {
   id: string;
@@ -44,6 +53,8 @@ export type FilaMarcador = {
   lat: number | null;
   lng: number | null;
   buscable: boolean;
+  // Desde la migración 0012; opcional por si la RPC aún no la devuelve.
+  evacuacion?: string | null;
 };
 
 // Formato que exige la migración 0011: <uuid v4 en minúsculas>.png|webp. Nunca SVG:
@@ -60,12 +71,19 @@ function esCategoria(valor: string | null): valor is CategoriaIcono {
   return valor !== null && (CATEGORIAS_ICONO as readonly string[]).includes(valor);
 }
 
+export function esEvacuacion(valor: string | null | undefined): valor is Evacuacion {
+  return typeof valor === "string" && (VALORES_EVACUACION as readonly string[]).includes(valor);
+}
+
 export function aMarcador(fila: FilaMarcador): MarcadorMapa | null {
   if (fila.lat === null || fila.lng === null) return null;
   let clase: ClaseMarcador | null = null;
   if (fila.icono !== null) {
     if (!esCategoria(fila.icono)) return null;
     clase = fila.icono;
+  } else if (esEvacuacion(fila.evacuacion)) {
+    // Una entrada que también es salida se dibuja como salida.
+    clase = fila.evacuacion;
   } else if ((TIPOS_CON_ICONO as readonly string[]).includes(fila.tipo)) {
     clase = fila.tipo as TipoConIcono;
   }
@@ -87,7 +105,7 @@ const ZOOM_MINIMO_SERVICIOS = 17;
 
 export function marcadoresVisibles(marcadores: MarcadorMapa[], piso: number, zoom: number): MarcadorMapa[] {
   return marcadores.filter(
-    (m) => m.piso === piso && (esCategoria(m.clase) || zoom >= ZOOM_MINIMO_SERVICIOS),
+    (m) => m.piso === piso && (esCategoria(m.clase) || esEvacuacion(m.clase) || zoom >= ZOOM_MINIMO_SERVICIOS),
   );
 }
 
@@ -120,6 +138,9 @@ const COLOR: Record<ClaseMarcador, string> = {
   escalera: "#0369a1",
   elevador: "#0369a1",
   bano: "#1c7ed6",
+  // Verde de la señalización de evacuación.
+  salida: "#16803c",
+  punto_reunion: "#16803c",
 };
 
 export function colorMarcador(clase: ClaseMarcador): string {
@@ -127,13 +148,17 @@ export function colorMarcador(clase: ClaseMarcador): string {
 }
 
 // Glifos blancos dibujados en un cuadro de -7 a 7 (trazo, salvo los que dicen fill).
-const GLIFO: Record<CategoriaIcono, string> = {
+const GLIFO: Record<CategoriaIcono | Evacuacion, string> = {
   comida: '<path d="M-2.6,-4 v3 a1.4,1.4 0 0 0 2.8,0 v-3 M-1.2,-4 v8 M2.4,-4 c-1.4,0 -1.4,4 0,4 v4"/>',
   cafe: '<path d="M-3.6,-1.5 h5.4 v2 a2.7,2.7 0 0 1 -5.4,0 z M1.8,-0.8 h0.8 a1.2,1.2 0 0 1 0,2.4 h-1 M-2.4,-4 q0.6,-0.8 0,-1.4 M0,-4 q0.6,-0.8 0,-1.4 M-4,3.6 h6.6"/>',
   monumento: '<path fill="#fff" stroke="none" d="M0,-4.6 l1.35,2.8 3.05,.45 -2.2,2.15 .52,3.05 -2.72,-1.45 -2.72,1.45 .52,-3.05 -2.2,-2.15 3.05,-.45 z"/>',
   tienda: '<path d="M-3.6,-1.6 h7.2 l-.6,5.4 h-6 z M-1.6,-1.6 v-1.2 a1.6,1.6 0 0 1 3.2,0 v1.2"/>',
   deporte: '<circle r="3.9"/><path d="M0,-1.6 l1.5,1.1 -.6,1.8 h-1.8 l-.6,-1.8 z M0,-1.6 v-2.3 M1.5,-.5 l2.2,-.7 M.9,1.3 l1.3,1.9 M-.9,1.3 l-1.3,1.9 M-1.5,-.5 l-2.2,-.7"/>',
   servicio: '<path d="M0,-.6 v4"/><circle cy="-3" r=".5" fill="#fff"/>',
+  // Puerta con flecha hacia afuera.
+  salida: '<path d="M-.6,-4.4 h4.2 v8.8 h-4.2 M-4.6,0 h5.2 M-2.4,-2.2 l2.2,2.2 -2.2,2.2"/>',
+  // Cuatro flechas que apuntan al centro, como el letrero de punto de reunión.
+  punto_reunion: '<circle r="1" fill="#fff" stroke="none"/><path d="M-4.6,-4.6 l2.8,2.8 M-1.8,-3.4 v1.6 h-1.6 M4.6,-4.6 l-2.8,2.8 M1.8,-3.4 v1.6 h1.6 M-4.6,4.6 l2.8,-2.8 M-1.8,3.4 v-1.6 h-1.6 M4.6,4.6 l-2.8,-2.8 M1.8,3.4 v-1.6 h1.6"/>',
 };
 
 export const TAMANO_MARCADOR = 28;
@@ -155,7 +180,7 @@ export function htmlMarcador(m: MarcadorMapa): string {
     : `<svg width="${t}" height="${t}" viewBox="-9 -9 18 18" aria-hidden="true" style="display:block;overflow:visible">` +
       `<circle r="8.2" cy=".8" fill="#000" opacity=".18"/>` +
       `<circle r="7.2" fill="${color}" stroke="#fff" stroke-width="1.4"/>` +
-      `<g fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${GLIFO[m.clase as CategoriaIcono]}</g></svg>`;
+      `<g fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${GLIFO[m.clase as CategoriaIcono | Evacuacion]}</g></svg>`;
   return `<div style="position:relative;width:${t}px;height:${t}px" title="${escaparHtml(m.nombre)}">${circulo}</div>`;
 }
 
@@ -170,6 +195,14 @@ export function leerIconoYLogo(formData: FormData): IconoYLogo {
   // El logo se dibuja dentro del icono: sin categoría no aparecería en el mapa.
   if (logo && !icono) return { ok: false, error: "Elige un icono para el mapa: el logo se muestra dentro de él." };
   return { ok: true, icono: icono ? (icono as CategoriaIcono) : null, logo_path: logo || null };
+}
+
+// Lee y valida el campo `evacuacion` del formulario de destinos (vacío = ninguno).
+export function leerEvacuacion(formData: FormData): { ok: true; evacuacion: Evacuacion | null } | { ok: false; error: string } {
+  const valor = String(formData.get("evacuacion") ?? "").trim();
+  if (!valor) return { ok: true, evacuacion: null };
+  if (!esEvacuacion(valor)) return { ok: false, error: "Selecciona una opción de evacuación válida." };
+  return { ok: true, evacuacion: valor };
 }
 
 // Convierte la respuesta de la RPC; descarta filas sin coordenadas o sin clase.

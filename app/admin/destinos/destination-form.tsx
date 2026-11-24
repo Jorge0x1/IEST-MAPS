@@ -6,6 +6,7 @@ import { actualizarDestino, crearDestino, type EstadoDestino } from "./actions";
 import { FotoDestinoInput } from "./foto-destino-input";
 import { IconoDestinoInput } from "./icono-destino-input";
 import { LogoDestinoInput } from "./logo-destino-input";
+import { ETIQUETA_EVACUACION, VALORES_EVACUACION } from "@/lib/marcadores";
 import { etiquetaPiso, PISO_PLANTA_BAJA, pisoRegistrado, PISOS_REGISTRADOS } from "@/lib/pisos";
 import styles from "./destinos.module.css";
 
@@ -38,6 +39,7 @@ export type DestinoInicial = {
   foto_path: string | null;
   icono: string | null;
   logo_path: string | null;
+  evacuacion: string | null;
 };
 
 const tipos = [
@@ -157,6 +159,17 @@ export function DestinationForm({ edificios, destino }: { edificios: EdificioOpc
 
       <IconoDestinoInput key={`icono-${mapResetVersion}`} valorInicial={destino?.icono ?? null} />
       <LogoDestinoInput key={`logo-${mapResetVersion}`} valorInicial={destino?.logo_path ?? null} onSubiendoChange={setSubiendoLogo} />
+
+      <label className={styles.field}>
+        Evacuación
+        <select name="evacuacion" defaultValue={destino?.evacuacion ?? ""} className={styles.control}>
+          <option value="">No es parte de la evacuación</option>
+          {VALORES_EVACUACION.map((valor) => <option key={valor} value={valor}>{ETIQUETA_EVACUACION[valor]}</option>)}
+        </select>
+        <span className={styles.fieldHelp}>
+          Se ve en el mapa con un icono verde. Para calcular rutas hasta aquí, el nodo debe estar conectado a un pasillo.
+        </span>
+      </label>
 
       <div className={styles.locationSection}>
         <div className={styles.locationPickerShell}>

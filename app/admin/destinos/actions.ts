@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { BUCKET_DESTINOS, RE_FOTO_DESTINO } from "@/lib/fotos";
-import { leerIconoYLogo, type CategoriaIcono } from "@/lib/marcadores";
+import { leerEvacuacion, leerIconoYLogo, type CategoriaIcono, type Evacuacion } from "@/lib/marcadores";
 import { pisoRegistrado } from "@/lib/pisos";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
@@ -28,6 +28,7 @@ type DatosDestino = {
   foto_path: string | null;
   icono: CategoriaIcono | null;
   logo_path: string | null;
+  evacuacion: Evacuacion | null;
 };
 
 const MAX_DESCRIPCION = 500;
@@ -98,6 +99,8 @@ function validarDestino(formData: FormData): { ok: true; data: DatosDestino } | 
   }
   const iconoYLogo = leerIconoYLogo(formData);
   if (!iconoYLogo.ok) return { ok: false, error: iconoYLogo.error };
+  const evacuacion = leerEvacuacion(formData);
+  if (!evacuacion.ok) return { ok: false, error: evacuacion.error };
 
   return {
     ok: true,
@@ -114,6 +117,7 @@ function validarDestino(formData: FormData): { ok: true; data: DatosDestino } | 
       foto_path: fotoPath || null,
       icono: iconoYLogo.icono,
       logo_path: iconoYLogo.logo_path,
+      evacuacion: evacuacion.evacuacion,
     },
   };
 }

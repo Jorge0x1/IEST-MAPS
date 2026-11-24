@@ -66,8 +66,8 @@ describe("el motor de rutas autoriza antes de tocar el grafo con service-role", 
   // Primer punto donde la acción llega al grafo (cargarlo o calcular sin validar).
   const usoDelGrafo = (cuerpo: string) => cuerpo.search(/cargarGrafo\(|calcularRutaSinValidar\(/);
 
-  it("calcularRuta y calcularRutaDesdeUbicacion exigen sesión activa", () => {
-    for (const n of ["calcularRuta", "calcularRutaDesdeUbicacion"]) {
+  it("calcularRuta, calcularRutaDesdeUbicacion y calcularRutaEvacuacion exigen sesión activa", () => {
+    for (const n of ["calcularRuta", "calcularRutaDesdeUbicacion", "calcularRutaEvacuacion"]) {
       const { cuerpo } = por(n);
       assert.ok(cuerpo.includes("obtenerSesionConPerfil()"), `${n} no revisa la sesión`);
       assert.ok(cuerpo.includes("no_autorizado"), `${n} no responde no_autorizado`);
@@ -84,8 +84,8 @@ describe("el motor de rutas autoriza antes de tocar el grafo con service-role", 
     assert.ok(usoDelGrafo(cuerpo) > cuerpo.indexOf("obtener_visita_por_token"), "toca el grafo antes de validar el token");
   });
 
-  it("no se exporta nada más que las tres acciones previstas (cada export es un endpoint público)", () => {
-    assert.deepEqual(acciones.map((a) => a.nombre).sort(), ["calcularRuta", "calcularRutaDeVisita", "calcularRutaDesdeUbicacion"]);
+  it("no se exporta nada más que las cuatro acciones previstas (cada export es un endpoint público)", () => {
+    assert.deepEqual(acciones.map((a) => a.nombre).sort(), ["calcularRuta", "calcularRutaDeVisita", "calcularRutaDesdeUbicacion", "calcularRutaEvacuacion"]);
   });
 });
 

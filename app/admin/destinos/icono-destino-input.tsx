@@ -26,7 +26,6 @@ export function IconoDestinoInput({ valorInicial }: { valorInicial: string | nul
             dangerouslySetInnerHTML={{
               __html: htmlMarcador(
                 { id: "", nombre: "", clase: icono as CategoriaIcono, piso: 0, lat: 0, lng: 0, buscable: false, logoUrl: null },
-                false,
               ),
             }}
           />

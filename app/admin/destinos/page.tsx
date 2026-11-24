@@ -22,7 +22,7 @@ export default async function DestinosPage({ searchParams }: { searchParams: Pro
       leerTodo<DestinoCatalogo>((desde, hasta) =>
         supabase
           .from("nodos")
-          .select("id, nombre, tipo, nombres_alternativos, edificio_id, piso, lat, lng, buscable, descripcion, foto_path, icono, logo_path, edificios(nombre)")
+          .select("id, nombre, tipo, nombres_alternativos, edificio_id, piso, lat, lng, buscable, descripcion, foto_path, icono, logo_path, evacuacion, edificios(nombre)")
           .order("piso")
           .order("nombre")
           .order("id")

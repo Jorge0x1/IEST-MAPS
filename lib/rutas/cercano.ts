@@ -55,6 +55,7 @@ export function nodoMasCercano<N extends NodoGrafo>(
     if (nodo.piso !== piso || !conectados.has(nodo.id)) continue;
     // Dijkstra excluye las escaleras con esta opción: no se puede salir de una.
     if (opciones.evitarEscaleras && nodo.tipo === "escalera") continue;
+    if (opciones.evitarElevadores && nodo.tipo === "elevador") continue;
     const distancia = distanciaMetros(posicion.lat, posicion.lng, nodo.lat, nodo.lng);
     if (!mejor || distancia < mejor.distanciaMetros) mejor = { nodo, distanciaMetros: distancia };
   }

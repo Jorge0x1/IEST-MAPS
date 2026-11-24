@@ -6,7 +6,8 @@ import { ETIQUETA_TIPO, ListaPasos, contarPasos } from "@/app/components/pasos-r
 import { DetalleDestino } from "@/app/components/detalle-destino";
 import { ALTURA_PANEL_MINIMO, PanelDeslizable, type EstadoPanel } from "@/app/components/panel-deslizable";
 import { buscarDestinos } from "@/lib/busqueda";
-import { calcularRuta, calcularRutaDesdeUbicacion, type ResultadoRuta } from "@/lib/rutas/actions";
+import { calcularRuta, calcularRutaDesdeUbicacion, calcularRutaEvacuacion, type OrigenEvacuacion, type ResultadoRuta } from "@/lib/rutas/actions";
+import { urlFotoDestino } from "@/lib/fotos";
 import { puntosDeRuta } from "@/lib/rutas/mapa";
 import { ajustarARuta } from "@/lib/rutas/ajuste";
 import { useEscritorio } from "@/app/components/use-escritorio";
@@ -53,6 +54,33 @@ const ANCHO_COLUMNA_ESCRITORIO = 384;
 // Alto aproximado del banner de indicación y de la barra inferior al navegar.
 const MARGEN_SUPERIOR_NAVEGACION = 120;
 const MARGEN_INFERIOR_NAVEGACION = 90;
+
+// Destino provisional mientras se calcula la ruta de evacuación: el punto de reunión
+// real lo elige el servidor (el más cercano) y reemplaza a este al llegar la ruta.
+const ID_EVACUACION = "evacuacion";
+const DESTINO_EVACUACION: DestinoAlumno = {
+  id: ID_EVACUACION,
+  nombre: "Punto de reunión más cercano",
+  alias: [],
+  tipo: "punto_reunion",
+  piso: 1,
+  edificioNombre: null,
+  descripcion: "Te llevamos al punto de reunión más cercano. No uses elevadores, camina sin correr y sigue las indicaciones del personal.",
+  fotoUrl: null,
+};
+
+function destinoDePunto(paso: PasoRutaDetallado): DestinoAlumno {
+  return {
+    id: paso.id,
+    nombre: paso.nombre,
+    alias: [],
+    tipo: paso.tipo,
+    piso: paso.piso,
+    edificioNombre: paso.edificioNombre,
+    descripcion: paso.descripcion,
+    fotoUrl: urlFotoDestino(paso.fotoPath),
+  };
+}
 
 function lugar(edificio: string | null, piso: number) {
   return [edificio, `Piso ${piso}`].filter(Boolean).join(" · ");
@@ -107,6 +135,8 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
   const lectura = ubicacion.estado === "ok" ? ubicacion.lectura : null;
   const gpsUtil = lecturaUtil(lectura);
   const [evitarEscaleras, setEvitarEscaleras] = useState(false);
+  // Ruta de evacuación: el destino es el punto de reunión más cercano y no se usan elevadores.
+  const [evacuando, setEvacuando] = useState(false);
   const [ruta, setRuta] = useState<ResultadoRuta | null>(null);
   // Nombre del punto de partida de la lista con el que se pidió la ruta mostrada.
   const [rutaDesde, setRutaDesde] = useState<string | null>(null);
@@ -183,6 +213,7 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
 
   function elegirDestino(d: DestinoAlumno) {
     solicitud.current++;
+    setEvacuando(false);
     setDestino(d);
     setRuta(null);
     setConsulta("");
@@ -198,6 +229,7 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
   function volverABuscar() {
     solicitud.current++;
     salirDeNavegacion();
+    setEvacuando(false);
     setDestino(null);
     setRuta(null);
   }
@@ -206,6 +238,8 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
   function editarRuta() {
     solicitud.current++;
     salirDeNavegacion();
+    // En evacuación, con otro punto de partida el punto de reunión más cercano puede cambiar.
+    if (evacuando) setDestino(DESTINO_EVACUACION);
     setRuta(null);
     setEstadoPanel("medio");
   }
@@ -215,6 +249,7 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
     solicitud.current++;
     salirDeNavegacion();
     setOrigenElegido(id);
+    if (evacuando) setDestino(DESTINO_EVACUACION);
     setRuta(null);
   }
 
@@ -224,6 +259,7 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
     solicitud.current++;
     salirDeNavegacion();
     setPisoActual(piso);
+    if (evacuando) setDestino(DESTINO_EVACUACION);
     setRuta(null);
   }
 
@@ -259,6 +295,47 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
         // Con ruta, el panel baja para dejar ver el mapa; con error, se queda a la vista.
         setEstadoPanel(resultado.ok ? "minimo" : "medio");
       }
+    });
+  }
+
+  // Botón de evacuación: con GPS útil la ruta se pide de inmediato; si no, el panel
+  // pide el piso y el punto de partida.
+  function iniciarEvacuacion() {
+    solicitud.current++;
+    salirDeNavegacion();
+    setEvacuando(true);
+    setDestino(DESTINO_EVACUACION);
+    setRuta(null);
+    setConsulta("");
+    setEstadoPanel("medio");
+    if (gpsUtil) pedirEvacuacion(true);
+  }
+
+  function pedirEvacuacion(forzarGps = false) {
+    const conGps = forzarGps || usandoGps;
+    if (conGps && !(gpsUtil && lectura)) return;
+    if (!conGps && !origenId) return;
+    const numero = ++solicitud.current;
+    const desde: OrigenEvacuacion =
+      conGps && lectura
+        ? { tipo: "ubicacion", posicion: { lat: lectura.lat, lng: lectura.lng, precision: lectura.precision }, piso: pisoActual }
+        : { tipo: "nodo", id: origenId };
+    const nombreDesde = conGps ? null : (origen?.nombre ?? null);
+    startTransition(async () => {
+      let resultado: ResultadoRuta;
+      try {
+        resultado = await calcularRutaEvacuacion(desde);
+      } catch {
+        resultado = { ok: false, motivo: "error_servidor", mensaje: "No pudimos calcular la ruta. Revisa tu conexión e intenta de nuevo." };
+      }
+      if (numero !== solicitud.current) return;
+      if (resultado.ok) {
+        const punto = resultado.pasos[resultado.pasos.length - 1];
+        if (punto) setDestino(destinoDePunto(punto));
+      }
+      setRuta(resultado);
+      setRutaDesde(nombreDesde);
+      setEstadoPanel(resultado.ok ? "minimo" : "medio");
     });
   }
 
@@ -298,7 +375,8 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
           destinoId={destino.id}
           destinoNombre={destino.nombre}
           destinoLugar={lugar(destino.edificioNombre, destino.piso)}
-          evitarEscaleras={evitarEscaleras}
+          evitarEscaleras={evacuando ? false : evitarEscaleras}
+          evitarElevadores={evacuando}
           avisos={avisos}
           onRutaNueva={actualizarPasos}
           onPiso={setPisoNavegacion}
@@ -352,6 +430,19 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
           <p className="mt-2 rounded-2xl bg-white p-4 text-sm text-slate-500 shadow-lg ring-1 ring-black/5">Todavía no hay destinos registrados en el mapa del campus.</p>
         ) : null}
 
+        {!destino && !hayBusqueda ? (
+          <button
+            type="button"
+            onClick={iniciarEvacuacion}
+            className="mt-2 inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-lg ring-1 ring-black/5 hover:bg-red-700"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3 2 20h20L12 3Z M12 10v4 M12 17h.01" />
+            </svg>
+            Ruta de evacuación
+          </button>
+        ) : null}
+
         {hayBusqueda ? (
           <div className="mt-2 max-h-[60dvh] overflow-y-auto rounded-2xl bg-white shadow-lg ring-1 ring-black/5">
             {resultados.length === 0 ? (
@@ -381,14 +472,23 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
           cabecera={
             <div aria-live="polite">
               <h2 className="text-xl font-bold leading-tight text-slate-950">{destino.nombre}</h2>
-              <p className="mt-0.5 text-sm text-slate-600">{ETIQUETA_TIPO[destino.tipo] ?? destino.tipo} · {lugar(destino.edificioNombre, destino.piso)}</p>
+              {evacuando ? (
+                <p className="mb-1 inline-block rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">Evacuación</p>
+              ) : null}
+              <p className="mt-0.5 text-sm text-slate-600">
+                {evacuando
+                  ? ruta?.ok
+                    ? `Punto de reunión · ${lugar(destino.edificioNombre, destino.piso)}`
+                    : "Ruta de evacuación · sin elevadores"
+                  : `${ETIQUETA_TIPO[destino.tipo] ?? destino.tipo} · ${lugar(destino.edificioNombre, destino.piso)}`}
+              </p>
               {ruta?.ok ? (
                 <p className="mt-2 text-sm font-semibold text-[var(--brand-primary-active)]">
                   {contarPasos(ruta.pasos)} pasos · Desde{" "}
                   {ruta.origen
                     ? `${ruta.origen.nombre} (a ${Math.round(ruta.origen.distanciaMetros)} m de ti)`
                     : (rutaDesde ?? "el punto de partida")}
-                  {evitarEscaleras ? " · sin escaleras" : ""}
+                  {evacuando ? " · sin elevadores" : evitarEscaleras ? " · sin escaleras" : ""}
                 </p>
               ) : null}
               {ruta?.ok ? (
@@ -410,11 +510,15 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
               ) : (usandoGps || origen) && !mismoPunto ? (
                 <button
                   type="button"
-                  onClick={() => pedirRuta()}
+                  onClick={() => (evacuando ? pedirEvacuacion() : pedirRuta())}
                   disabled={calculando}
-                  className="mt-3 w-full rounded-xl bg-[var(--brand-primary)] px-5 py-3 font-semibold text-white transition hover:bg-[var(--brand-primary-hover)] disabled:cursor-wait disabled:opacity-70"
+                  className={
+                    evacuando
+                      ? "mt-3 w-full rounded-xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-wait disabled:opacity-70"
+                      : "mt-3 w-full rounded-xl bg-[var(--brand-primary)] px-5 py-3 font-semibold text-white transition hover:bg-[var(--brand-primary-hover)] disabled:cursor-wait disabled:opacity-70"
+                  }
                 >
-                  {calculando ? "Calculando…" : "Iniciar ruta"}
+                  {calculando ? "Calculando…" : evacuando ? "Trazar ruta de evacuación" : "Iniciar ruta"}
                 </button>
               ) : null}
             </div>
@@ -502,10 +606,14 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" checked={evitarEscaleras} onChange={(e) => cambiarEscaleras(e.target.checked)} className="h-4 w-4 accent-[var(--brand-primary)]" />
-                    Evitar escaleras (usar elevadores)
-                  </label>
+                  {evacuando ? (
+                    <p className="text-sm text-slate-600">En una evacuación no se usan elevadores. Si no puedes usar escaleras, avisa al personal o a los brigadistas.</p>
+                  ) : (
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                      <input type="checkbox" checked={evitarEscaleras} onChange={(e) => cambiarEscaleras(e.target.checked)} className="h-4 w-4 accent-[var(--brand-primary)]" />
+                      Evitar escaleras (usar elevadores)
+                    </label>
+                  )}
 
                   {mismoPunto ? <p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Ya estás en {destino.nombre}: el punto de partida es tu destino.</p> : null}
                 </>

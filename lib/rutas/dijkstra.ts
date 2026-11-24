@@ -27,6 +27,8 @@ export type ConexionGrafo = {
 
 export type OpcionesRuta = {
   evitarEscaleras?: boolean;
+  // Evacuación: no se usan elevadores.
+  evitarElevadores?: boolean;
 };
 
 export type PasoRuta = {
@@ -144,6 +146,7 @@ function filtrarNodos(nodos: NodoGrafo[], opciones: OpcionesRuta): Map<string, N
   for (const nodo of nodos) {
     // Evitar escaleras excluye solo 'escalera'; 'elevador' sigue disponible.
     if (opciones.evitarEscaleras && nodo.tipo === "escalera") continue;
+    if (opciones.evitarElevadores && nodo.tipo === "elevador") continue;
     nodosPorId.set(nodo.id, nodo);
   }
   return nodosPorId;

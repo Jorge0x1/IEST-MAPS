@@ -29,9 +29,10 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
 
 - **Migraciones:** nunca editar una migración ya aplicada. Todo cambio de esquema va en
   un archivo nuevo `supabase/migrations/NNNN_nombre.sql`.
-- **Estado de migraciones:** `0001` a `0009` están aplicadas en Supabase. `0010`
-  (descripción y foto de destinos + bucket público `destinos`) está creada; actualizar
-  esta línea cuando se aplique y al agregar una nueva.
+- **Estado de migraciones:** `0001` a `0012` están aplicadas en Supabase (`0012`:
+  columna `nodos.evacuacion` = `salida` | `punto_reunion` y `marcadores_mapa()` la
+  devuelve). Supabase no lleva historial de las anteriores (se aplicaron desde el editor
+  SQL): esta línea es el registro. Actualizarla al agregar una nueva.
 - **Service role:** `utils/supabase/service.ts` ignora RLS. Solo se importa desde
   archivos `"use server"` (hoy `lib/rutas/actions.ts` y `app/admin/dashboard/actions.ts`,
   este último para la API de administración de Auth), y cada acción valida sesión o
@@ -82,6 +83,13 @@ npm test          # pruebas unitarias (node --test, sin dependencias)
   (baños: mujer/hombre/mixto según el nombre del nodo, `iconoServicio()` en
   `lib/marcadores.ts`). Los marcadores no escriben su nombre: al tocarlos sale un globo con
   el nombre y, si el destino es buscable, el botón "Ir aquí".
+- **Evacuación:** `nodos.evacuacion = 'punto_reunion'` (0012). Botón "Ruta de evacuación"
+  en la vista del alumno → `calcularRutaEvacuacion` (sesión obligatoria): un solo Dijkstra
+  hasta un destino virtual al que llegan todos los puntos con costo 0, así sale el punto
+  de reunión más cercano. Nunca usa elevadores (`evitarElevadores`). Los puntos sin
+  conexiones se enlazan EN MEMORIA (no en la base) con hasta 3 nodos conectados de su piso
+  a ≤ 120 m (`enlacesVirtuales`, `lib/rutas/evacuacion.ts`, dentro de `cargarGrafo`); si el
+  admin los conecta con el trazador, ya no reciben enlaces. Pendiente: vista del visitante.
 - **GPS como origen:** `calcularRutaDesdeUbicacion` (servidor) elige el nodo conectado
   más cercano del piso elegido, por defecto el 1 (`lib/rutas/cercano.ts`: precisión ≤ 50 m, nodo a ≤ 150 m).
   La ubicación nunca se guarda ni se loguea. La lista de puntos de partida se conserva

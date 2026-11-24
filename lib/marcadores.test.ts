@@ -137,3 +137,32 @@ describe("marcadoresDeFilas", () => {
     assert.deepEqual(marcadoresDeFilas([fila, { ...fila, id: "n2", lat: null }]).map((m) => m.id), ["n1"]);
   });
 });
+
+describe("evacuación (0012)", () => {
+  it("un nodo marcado sin icono se dibuja como salida o punto de reunión", async () => {
+    const { aMarcador } = await import("./marcadores.ts");
+    assert.equal(aMarcador({ ...fila, tipo: "entrada", icono: null, evacuacion: "salida" })?.clase, "salida");
+    assert.equal(aMarcador({ ...fila, tipo: "pasillo", icono: null, evacuacion: "punto_reunion" })?.clase, "punto_reunion");
+  });
+  it("valores desconocidos o ausentes se ignoran", async () => {
+    const { aMarcador } = await import("./marcadores.ts");
+    assert.equal(aMarcador({ ...fila, tipo: "pasillo", icono: null, evacuacion: "otro" }), null);
+    assert.equal(aMarcador({ ...fila, tipo: "pasillo", icono: null }), null);
+  });
+  it("se ven con cualquier zoom", async () => {
+    const { marcadoresVisibles } = await import("./marcadores.ts");
+    const m: MarcadorMapa = { id: "s", nombre: "Salida", clase: "punto_reunion", piso: 1, lat: 0, lng: 0, buscable: false, logoUrl: null };
+    assert.equal(marcadoresVisibles([m], 1, 15).length, 1);
+  });
+  it("leerEvacuacion valida el formulario", async () => {
+    const { leerEvacuacion } = await import("./marcadores.ts");
+    const f = (v: string) => { const d = new FormData(); d.set("evacuacion", v); return d; };
+    assert.deepEqual(leerEvacuacion(f("")), { ok: true, evacuacion: null });
+    assert.deepEqual(leerEvacuacion(f("salida")), { ok: true, evacuacion: "salida" });
+    assert.equal(leerEvacuacion(f("incendio")).ok, false);
+  });
+  it("el icono lleva su glifo en verde", () => {
+    const html = htmlMarcador({ id: "s", nombre: "Punto A", clase: "punto_reunion", piso: 1, lat: 0, lng: 0, buscable: false, logoUrl: null });
+    assert.ok(html.includes("#16803c"));
+  });
+});

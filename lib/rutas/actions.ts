@@ -13,6 +13,8 @@
 //   - calcularRutaDesdeUbicacion: requiere sesión; parte del nodo más cercano a
 //     la posición GPS del alumno (lib/rutas/cercano.ts). La posición no se
 //     guarda ni se escribe en los logs.
+//   - calcularRutaEvacuacion: requiere sesión; ruta al punto de reunión más
+//     cercano (lib/rutas/evacuacion.ts), sin elevadores.
 
 import { createHash } from "node:crypto";
 import { obtenerSesionConPerfil } from "@/utils/auth";
@@ -26,8 +28,10 @@ import {
   type MotivoSinRuta,
   type NodoGrafo,
   type OpcionesRuta,
+  type PasoRuta,
 } from "./dijkstra";
-import { nodoMasCercano, PISO_GPS, validarPosicion } from "./cercano";
+import { nodoMasCercano, PISO_GPS, validarPosicion, type PosicionUsuario } from "./cercano";
+import { enlacesVirtuales, rutaAlPuntoMasCercano } from "./evacuacion";
 import { pisoRegistrado } from "../pisos";
 
 export type CambioPiso = {
@@ -71,13 +75,25 @@ export type ResultadoRuta =
   | { ok: true; pasos: PasoRutaDetallado[]; costoTotal: number; origen?: OrigenUbicacion }
   | {
       ok: false;
-      motivo: MotivoSinRuta | MotivoUbicacion | "no_autorizado" | "visita_sin_nodos" | "error_servidor";
+      motivo:
+        | MotivoSinRuta
+        | MotivoUbicacion
+        | "no_autorizado"
+        | "visita_sin_nodos"
+        | "error_servidor"
+        | "sin_puntos_reunion"
+        | "sin_ruta_evacuacion";
       mensaje: string;
     };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type FilaNodo = NodoGrafo & { nombre: string; descripcion: string | null; foto_path: string | null };
+type FilaNodo = NodoGrafo & {
+  nombre: string;
+  descripcion: string | null;
+  foto_path: string | null;
+  evacuacion: string | null;
+};
 type FilaEdificio = { id: string; nombre: string };
 
 const MENSAJES_SIN_RUTA: Record<MotivoSinRuta, string> = {
@@ -123,7 +139,7 @@ async function cargarGrafo(): Promise<Grafo | null> {
       leerTodo<FilaNodo>((desde, hasta) =>
         supabase
           .from("nodos")
-          .select("id, nombre, tipo, piso, edificio_id, lat, lng, descripcion, foto_path")
+          .select("id, nombre, tipo, piso, edificio_id, lat, lng, descripcion, foto_path, evacuacion")
           .order("id")
           .range(desde, hasta),
       ),
@@ -138,7 +154,9 @@ async function cargarGrafo(): Promise<Grafo | null> {
         supabase.from("edificios").select("id, nombre").order("id").range(desde, hasta),
       ),
     ]);
-    return { nodos, conexiones, edificios };
+    // Los puntos de reunión sin pasillo trazado se enlazan en memoria con los nodos
+    // cercanos (lib/rutas/evacuacion.ts); nada de esto se guarda en la base.
+    return { nodos, conexiones: [...conexiones, ...enlacesVirtuales(nodos, conexiones)], edificios };
   } catch (error) {
     console.error("[rutas] No se pudo cargar el grafo:", error);
     return null;
@@ -147,18 +165,23 @@ async function cargarGrafo(): Promise<Grafo | null> {
 
 // Calcula la ruta sobre un grafo ya cargado y la arma para la interfaz.
 function armarRuta(
-  { nodos, conexiones, edificios }: Grafo,
+  grafo: Grafo,
   origenId: string,
   destinoId: string,
   opciones: OpcionesRuta,
 ): ResultadoRuta {
+  const { nodos, conexiones } = grafo;
   const ruta = buscarRuta(nodos, conexiones, origenId, destinoId, opciones);
 
   if (!ruta) {
     const motivo = explicarSinRuta(nodos, conexiones, origenId, destinoId, opciones);
     return { ok: false, motivo, mensaje: MENSAJES_SIN_RUTA[motivo] };
   }
+  return armarPasos(grafo, ruta);
+}
 
+// Convierte la ruta de Dijkstra en los pasos que muestra la interfaz.
+function armarPasos({ edificios }: Grafo, ruta: PasoRuta[]): ResultadoRuta {
   const nombreEdificio = new Map(edificios.map((e) => [e.id, e.nombre]));
   const pasos = ruta.map((paso, indice): PasoRutaDetallado => {
     const nodo = paso.nodo as FilaNodo;
@@ -193,7 +216,10 @@ async function calcularRutaSinValidar(
 }
 
 function leerOpciones(opciones?: OpcionesRuta): OpcionesRuta {
-  return { evitarEscaleras: opciones?.evitarEscaleras === true };
+  return {
+    evitarEscaleras: opciones?.evitarEscaleras === true,
+    evitarElevadores: opciones?.evitarElevadores === true,
+  };
 }
 
 // Ruta entre dos nodos cualesquiera, para usuarios con sesión (alumno, guardia,
@@ -321,4 +347,68 @@ export async function calcularRutaDesdeUbicacion(
       distanciaMetros: cercano.distanciaMetros,
     },
   };
+}
+
+// Desde dónde se pide la ruta de evacuación: un nodo de la lista o la ubicación GPS
+// en el piso que indicó el alumno.
+export type OrigenEvacuacion =
+  | { tipo: "nodo"; id: string }
+  | { tipo: "ubicacion"; posicion: PosicionUsuario; piso: number };
+
+// Ruta al punto de reunión más cercano. Nunca usa elevadores; las escaleras sí
+// (en una evacuación son la vía). Requiere sesión, como calcularRuta.
+export async function calcularRutaEvacuacion(origen: unknown): Promise<ResultadoRuta> {
+  const sesion = await obtenerSesionConPerfil();
+  if (!sesion) {
+    return { ok: false, motivo: "no_autorizado", mensaje: "Inicia sesión para calcular rutas." };
+  }
+  if (typeof origen !== "object" || origen === null) {
+    return { ok: false, motivo: "origen_inexistente", mensaje: "Punto de partida inválido." };
+  }
+  const entrada = origen as Record<string, unknown>;
+  const opciones: OpcionesRuta = { evitarElevadores: true };
+
+  const grafo = await cargarGrafo();
+  if (!grafo) return ERROR_GRAFO;
+  if (!grafo.nodos.some((n) => n.evacuacion === "punto_reunion")) {
+    return {
+      ok: false,
+      motivo: "sin_puntos_reunion",
+      mensaje: "Aún no hay puntos de reunión registrados. Sigue la señalización y las indicaciones del personal.",
+    };
+  }
+
+  let origenId: string;
+  let desdeUbicacion: OrigenUbicacion | undefined;
+  if (entrada.tipo === "nodo") {
+    if (typeof entrada.id !== "string" || !UUID_RE.test(entrada.id)) {
+      return { ok: false, motivo: "origen_inexistente", mensaje: "Punto de partida inválido." };
+    }
+    origenId = entrada.id;
+  } else if (entrada.tipo === "ubicacion") {
+    const posicion = validarPosicion(entrada.posicion);
+    if (!posicion) return sinRutaPorUbicacion("ubicacion_invalida");
+    const piso = entrada.piso;
+    if (typeof piso !== "number" || !pisoRegistrado(piso)) {
+      return { ok: false, motivo: "origen_inexistente", mensaje: "Piso inválido." };
+    }
+    const cercano = nodoMasCercano(posicion, grafo.nodos, grafo.conexiones, opciones, piso);
+    if (!cercano.ok) return sinRutaPorUbicacion(cercano.motivo);
+    origenId = cercano.nodo.id;
+    desdeUbicacion = { id: cercano.nodo.id, nombre: cercano.nodo.nombre, distanciaMetros: cercano.distanciaMetros };
+  } else {
+    return { ok: false, motivo: "origen_inexistente", mensaje: "Punto de partida inválido." };
+  }
+
+  const ruta = rutaAlPuntoMasCercano(grafo.nodos, grafo.conexiones, origenId, opciones);
+  if (!ruta) {
+    return {
+      ok: false,
+      motivo: "sin_ruta_evacuacion",
+      mensaje:
+        "No encontramos un camino trazado hasta un punto de reunión desde aquí. Sigue la señalización de salida y las indicaciones del personal.",
+    };
+  }
+  const resultado = armarPasos(grafo, ruta);
+  return resultado.ok && desdeUbicacion ? { ...resultado, origen: desdeUbicacion } : resultado;
 }
