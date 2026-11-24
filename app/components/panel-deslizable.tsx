@@ -127,7 +127,7 @@ export function PanelDeslizable({ estado, onCambiarEstado, cabecera, children, e
         </div>
         {cabecera}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 md:pb-5">{children}</div>
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-6 md:pb-5">{children}</div>
     </section>
   );
 }

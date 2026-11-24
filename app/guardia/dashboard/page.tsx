@@ -1,8 +1,11 @@
 import { finalizarVisita } from "./actions";
-import { VisitorForm, type NodoDestino, type NodoOrigen } from "./visitor-form";
+import { VisitorForm, type NodoOrigen } from "./visitor-form";
+import type { DestinoGuardia } from "./buscador-destino";
+import { StatCard, StatusBadge } from "@/app/admin/components/admin-ui";
 import { requerirRol } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 import { leerTodo } from "@/lib/leer-todo";
+import styles from "../guardia.module.css";
 
 type Nodo = {
   id: string;
@@ -10,6 +13,7 @@ type Nodo = {
   tipo: string;
   piso: number;
   buscable: boolean;
+  nombres_alternativos: string[] | null;
   edificio_id: string | null;
   edificios: { nombre: string } | null;
 };
@@ -29,8 +33,15 @@ type Visita = {
   hora_salida: string | null;
 };
 
+// Finalizadas que se muestran debajo de las activas: el guardia solo necesita las últimas.
+const MAX_FINALIZADAS = 10;
+
 function fechaHora(valor: string) {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(valor));
+}
+
+function hora(valor: string) {
+  return new Intl.DateTimeFormat("es-MX", { timeStyle: "short" }).format(new Date(valor));
 }
 
 export default async function GuardiaDashboardPage() {
@@ -38,12 +49,12 @@ export default async function GuardiaDashboardPage() {
   const supabase = await createClient();
   // Solo hacen falta destinos buscables y entradas (los pasillos no se eligen
   // aquí). Se leen por páginas: Supabase corta cada consulta en 1000 filas y,
-  // ordenados por nombre, los últimos del alfabeto desaparecerían del selector.
+  // ordenados por nombre, los últimos del alfabeto desaparecerían del buscador.
   const [nodosLeidos, edificiosResult, visitasResult] = await Promise.all([
     leerTodo<Nodo>((desde, hasta) =>
       supabase
         .from("nodos")
-        .select("id, nombre, tipo, piso, buscable, edificio_id, edificios(nombre)")
+        .select("id, nombre, tipo, piso, buscable, nombres_alternativos, edificio_id, edificios(nombre)")
         .or("buscable.eq.true,tipo.eq.entrada")
         .order("nombre")
         .order("id")
@@ -66,10 +77,17 @@ export default async function GuardiaDashboardPage() {
   const nodos = nodosLeidos ?? [];
   const edificios = (edificiosResult.data ?? []) as Edificio[];
   const visitas = (visitasResult.data ?? []) as Visita[];
+  const hayError = Boolean(visitasResult.error || nodosError || edificiosResult.error);
 
-  const destinosBuscables: NodoDestino[] = nodos
+  const destinosBuscables: DestinoGuardia[] = nodos
     .filter((nodo) => nodo.buscable)
-    .map((nodo) => ({ id: nodo.id, nombre: nodo.nombre, piso: nodo.piso, edificios: nodo.edificios }));
+    .map((nodo) => ({
+      id: nodo.id,
+      nombre: nodo.nombre,
+      alias: nodo.nombres_alternativos ?? [],
+      piso: nodo.piso,
+      edificio: nodo.edificios?.nombre ?? null,
+    }));
   const entradas: NodoOrigen[] = nodos
     .filter((nodo) => nodo.tipo === "entrada")
     .map((nodo) => ({ id: nodo.id, nombre: nodo.nombre, edificios: nodo.edificios }));
@@ -80,13 +98,9 @@ export default async function GuardiaDashboardPage() {
   function destinoTexto(visita: Visita) {
     if (visita.destino_nodo_id) {
       const nodo = nodoPorId.get(visita.destino_nodo_id);
-      if (nodo) {
-        return `${nodo.nombre} · ${nodo.edificios?.nombre ?? "Edificio no disponible"} · Piso ${nodo.piso}`;
-      }
+      if (nodo) return `${nodo.nombre} · ${nodo.edificios?.nombre ?? "Edificio no disponible"} · Piso ${nodo.piso}`;
     }
-    if (visita.destino_edificio_id) {
-      return nombreEdificio.get(visita.destino_edificio_id) ?? "Destino no disponible";
-    }
+    if (visita.destino_edificio_id) return nombreEdificio.get(visita.destino_edificio_id) ?? "Destino no disponible";
     return "Destino no disponible";
   }
 
@@ -96,24 +110,98 @@ export default async function GuardiaDashboardPage() {
   }
 
   const activas = visitas.filter((visita) => visita.estado === "activo");
-  const finalizadasHoy = visitas.filter((visita) => visita.hora_salida && new Date(visita.hora_salida).toDateString() === new Date().toDateString()).length;
+  const finalizadas = visitas.filter((visita) => visita.estado !== "activo").slice(0, MAX_FINALIZADAS);
+  const hoy = new Date().toDateString();
+  const finalizadasHoy = visitas.filter((visita) => visita.hora_salida && new Date(visita.hora_salida).toDateString() === hoy).length;
+
+  // Función que devuelve JSX (no un componente anidado: el linter de React lo prohíbe).
+  function tarjeta(visita: Visita) {
+    const origen = origenTexto(visita);
+    const activa = visita.estado === "activo";
+    return (
+      <article key={visita.id} className={styles.visit}>
+        <div className={styles.visitMain}>
+          <h3 className={styles.visitName}>
+            {visita.nombre}
+            <StatusBadge tone={activa ? "success" : "neutral"}>{activa ? "Activa" : "Finalizada"}</StatusBadge>
+          </h3>
+          <p className={styles.visitDetail}>
+            {destinoTexto(visita)}
+            {visita.motivo ? ` · ${visita.motivo}` : ""}
+          </p>
+          <p className={styles.visitMeta}>
+            Entrada: {fechaHora(visita.hora_entrada)}
+            {origen ? ` · por ${origen}` : ""}
+            {visita.telefono ? ` · ${visita.telefono}` : ""}
+            {visita.hora_salida ? ` · Salida: ${hora(visita.hora_salida)}` : ""}
+          </p>
+        </div>
+        {activa ? (
+          <form action={finalizarVisita.bind(null, visita.id)} className={styles.finishForm}>
+            <button className={styles.finishButton}>Finalizar visita</button>
+          </form>
+        ) : null}
+      </article>
+    );
+  }
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
-      <div className="mb-8"><p className="text-sm font-semibold text-sky-700">Control de acceso</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Registro de visitantes</h1><p className="mt-2 max-w-2xl text-slate-600">Registra entradas, comparte el acceso temporal y controla las visitas activas del campus.</p></div>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <p className={styles.eyebrow}>
+          <span className={styles.eyebrowNode} aria-hidden="true" />
+          Control de acceso
+        </p>
+        <h1 className={styles.title}>Registro de visitantes</h1>
+        <p className={styles.intro}>Registra la entrada, entrega el QR con la ruta y finaliza la visita cuando salga.</p>
+      </header>
 
-      <section className="mb-8 grid gap-4 sm:grid-cols-3">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-medium text-slate-500">Visitas activas</p><p className="mt-2 text-3xl font-bold text-slate-950">{activas.length}</p></article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-medium text-slate-500">Finalizadas hoy</p><p className="mt-2 text-3xl font-bold text-slate-950">{finalizadasHoy}</p></article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-medium text-slate-500">Edificios disponibles</p><p className="mt-2 text-3xl font-bold text-slate-950">{edificios.length}</p></article>
+      <section className={styles.stats} aria-label="Resumen">
+        <StatCard label="Visitas activas" value={activas.length} tone="success" />
+        <StatCard label="Finalizadas hoy" value={finalizadasHoy} tone="brand" />
       </section>
 
-      <div className="grid items-start gap-8 xl:grid-cols-[360px_1fr]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-6"><div className="mb-5"><h2 className="font-semibold text-slate-950">Nueva visita</h2><p className="mt-1 text-sm text-slate-500">El enlace generado tendrá una vigencia de 12 horas.</p></div><VisitorForm destinos={destinosBuscables} entradas={entradas} /></section>
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-5"><h2 className="font-semibold text-slate-950">Actividad reciente</h2><p className="mt-1 text-sm text-slate-500">Últimos {visitas.length} registros</p></div>
-          {visitasResult.error || nodosError || edificiosResult.error ? <div className="m-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">No se pudieron cargar las visitas. Ejecuta primero las migraciones pendientes.</div> : visitas.length === 0 ? <div className="px-6 py-16 text-center text-slate-500">Aún no hay visitas registradas.</div> : <div className="divide-y divide-slate-100">{visitas.map((visita) => { const origen = origenTexto(visita); return <article key={visita.id} className="p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-slate-950">{visita.nombre}</h3><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${visita.estado === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{visita.estado === "activo" ? "Activa" : "Finalizada"}</span></div><p className="mt-1 text-sm text-slate-600">{destinoTexto(visita)} · {visita.motivo}</p><p className="mt-2 text-xs text-slate-500">Entrada: {fechaHora(visita.hora_entrada)}{origen ? ` · Acceso por ${origen}` : ""}{visita.telefono ? ` · ${visita.telefono}` : ""}</p>{visita.hora_salida ? <p className="mt-1 text-xs text-slate-500">Salida: {fechaHora(visita.hora_salida)}</p> : null}</div>{visita.estado === "activo" ? <form action={finalizarVisita.bind(null, visita.id)}><button className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Finalizar visita</button></form> : null}</div></article>; })}</div>}
+      <div className={styles.layout}>
+        <section className={`${styles.panel} ${styles.formPanel}`} aria-labelledby="nueva-visita">
+          <div className={styles.panelHeader}>
+            <div>
+              <h2 id="nueva-visita" className={styles.panelTitle}>Nueva visita</h2>
+              <p className={styles.panelDescription}>El QR vale 12 horas.</p>
+            </div>
+          </div>
+          <div className={styles.panelBody}>
+            <VisitorForm destinos={destinosBuscables} entradas={entradas} />
+          </div>
         </section>
+
+        <div className={styles.columna}>
+          <section className={styles.panel} aria-labelledby="visitas-activas">
+            <div className={styles.panelHeader}>
+              <h2 id="visitas-activas" className={styles.panelTitle}>Visitas activas</h2>
+              <StatusBadge tone="success">{activas.length}</StatusBadge>
+            </div>
+            {hayError ? (
+              <p className={styles.error}>No se pudieron cargar las visitas. Recarga la página en un momento.</p>
+            ) : activas.length === 0 ? (
+              <p className={styles.empty}>No hay visitas en el campus ahora.</p>
+            ) : (
+              <div>
+                {activas.map(tarjeta)}
+              </div>
+            )}
+          </section>
+
+          {!hayError && finalizadas.length > 0 ? (
+            <section className={styles.panel} aria-labelledby="visitas-finalizadas">
+              <div className={styles.panelHeader}>
+                <h2 id="visitas-finalizadas" className={styles.panelTitle}>Finalizadas recientemente</h2>
+              </div>
+              <div>
+                {finalizadas.map(tarjeta)}
+              </div>
+            </section>
+          ) : null}
+        </div>
       </div>
     </main>
   );

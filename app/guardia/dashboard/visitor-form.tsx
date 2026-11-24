@@ -2,16 +2,11 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { registrarVisita, type EstadoRegistroVisita } from "./actions";
+import { BuscadorDestino, type DestinoGuardia } from "./buscador-destino";
 import { VisitorPass } from "./visitor-pass";
+import styles from "../guardia.module.css";
 
 const estadoInicial: EstadoRegistroVisita = { ok: false, mensaje: "" };
-
-export type NodoDestino = {
-  id: string;
-  nombre: string;
-  piso: number;
-  edificios: { nombre: string } | null;
-};
 
 export type NodoOrigen = {
   id: string;
@@ -19,120 +14,59 @@ export type NodoOrigen = {
   edificios: { nombre: string } | null;
 };
 
-function agruparPorEdificio<T extends { edificios: { nombre: string } | null }>(nodos: T[]) {
-  const grupos = new Map<string, T[]>();
-  for (const nodo of nodos) {
-    const etiqueta = nodo.edificios?.nombre ?? "Sin edificio";
-    grupos.set(etiqueta, [...(grupos.get(etiqueta) ?? []), nodo]);
-  }
-  return [...grupos.entries()];
-}
-
-export function VisitorForm({
-  destinos,
-  entradas,
-}: {
-  destinos: NodoDestino[];
-  entradas: NodoOrigen[];
-}) {
+export function VisitorForm({ destinos, entradas }: { destinos: DestinoGuardia[]; entradas: NodoOrigen[] }) {
   const [estado, action, pendiente] = useActionState(registrarVisita, estadoInicial);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (estado.ok) formRef.current?.reset();
-  }, [estado.ok]);
+  }, [estado]);
 
-  const campo =
-    "rounded-lg border border-slate-300 px-3 py-2.5 font-normal text-slate-950 outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-100";
-
-  const gruposDestino = agruparPorEdificio(destinos);
-  const gruposEntrada = agruparPorEdificio(entradas);
   const sinOpciones = destinos.length === 0 || entradas.length === 0;
+  // Con una sola entrada registrada se preselecciona.
+  const entradaUnica = entradas.length === 1 ? entradas[0].id : "";
 
   return (
     <div>
-      <form ref={formRef} action={action} className="grid gap-4">
-        <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+      <form ref={formRef} action={action} className={styles.form}>
+        <label className={styles.field}>
           Nombre del visitante
-          <input name="nombre" required minLength={2} maxLength={120} className={campo} />
+          <input name="nombre" required minLength={2} maxLength={120} autoComplete="off" autoCapitalize="words" className={styles.control} />
         </label>
 
-        <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+        <label className={styles.field}>
           Teléfono
-          <input
-            name="telefono"
-            type="tel"
-            maxLength={20}
-            placeholder="Opcional"
-            className={campo}
-          />
+          <input name="telefono" type="tel" inputMode="tel" maxLength={20} placeholder="Opcional" className={styles.control} />
         </label>
 
-        <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+        <label className={styles.field}>
           Entrada de acceso
-          <select name="origen_nodo_id" required defaultValue="" className={`${campo} bg-white`}>
+          <select name="origen_nodo_id" required defaultValue={entradaUnica} className={styles.control}>
             <option value="" disabled>
               Selecciona la entrada
             </option>
-            {gruposEntrada.map(([edificio, nodos]) => (
-              <optgroup key={edificio} label={edificio}>
-                {nodos.map((nodo) => (
-                  <option key={nodo.id} value={nodo.id}>
-                    {nodo.nombre}
-                  </option>
-                ))}
-              </optgroup>
+            {entradas.map((nodo) => (
+              <option key={nodo.id} value={nodo.id}>
+                {nodo.edificios?.nombre && nodo.edificios.nombre !== nodo.nombre ? `${nodo.nombre} · ${nodo.edificios.nombre}` : nodo.nombre}
+              </option>
             ))}
           </select>
         </label>
 
-        <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-          Destino
-          <select name="destino_nodo_id" required defaultValue="" className={`${campo} bg-white`}>
-            <option value="" disabled>
-              Selecciona un destino
-            </option>
-            {gruposDestino.map(([edificio, nodos]) => (
-              <optgroup key={edificio} label={edificio}>
-                {nodos.map((nodo) => (
-                  <option key={nodo.id} value={nodo.id}>
-                    {nodo.nombre} · Piso {nodo.piso}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+        <BuscadorDestino destinos={destinos} />
 
-        <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+        <label className={styles.field}>
           Motivo
-          <textarea
-            name="motivo"
-            required
-            minLength={3}
-            maxLength={300}
-            rows={3}
-            className={`${campo} resize-none`}
-          />
+          <textarea name="motivo" required minLength={3} maxLength={300} rows={3} className={`${styles.control} ${styles.textarea}`} />
         </label>
 
-        <button
-          disabled={pendiente || sinOpciones}
-          className="rounded-lg bg-sky-700 px-5 py-2.5 font-semibold text-white hover:bg-sky-800 disabled:bg-slate-300"
-        >
+        <button disabled={pendiente || sinOpciones} className={styles.primaryButton}>
           {pendiente ? "Registrando…" : "Registrar visita"}
         </button>
 
-        {sinOpciones ? (
-          <p className="text-sm text-amber-700">
-            Un administrador debe registrar al menos un destino buscable y una entrada.
-          </p>
-        ) : null}
+        {sinOpciones ? <p className={styles.warning}>Un administrador debe registrar al menos un destino buscable y una entrada.</p> : null}
         {estado.mensaje ? (
-          <p
-            role="status"
-            className={`text-sm ${estado.ok ? "text-emerald-700" : "text-red-700"}`}
-          >
+          <p role="status" className={`${styles.message} ${estado.ok ? styles.messageOk : styles.messageError}`}>
             {estado.mensaje}
           </p>
         ) : null}

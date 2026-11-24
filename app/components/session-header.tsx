@@ -7,6 +7,9 @@ type SessionHeaderProps = {
   rol: string;
   variant?: "default" | "admin";
   mobileNavigation?: ReactNode;
+  // Texto junto al punto naranja de la barra (variante "admin"). El guardia usa la
+  // misma barra con su propio contexto.
+  contexto?: { titulo: string; detalle: string };
 };
 
 export function SessionHeader({
@@ -14,6 +17,7 @@ export function SessionHeader({
   rol,
   variant = "default",
   mobileNavigation,
+  contexto = { titulo: "Administración", detalle: "Gestión del campus" },
 }: SessionHeaderProps) {
   if (variant === "default") {
     return (
@@ -41,8 +45,8 @@ export function SessionHeader({
         <div className={styles.headerContext}>
           <span className={styles.contextNode} aria-hidden="true" />
           <div>
-            <p>Administración</p>
-            <span>Gestión del campus</span>
+            <p>{contexto.titulo}</p>
+            <span>{contexto.detalle}</span>
           </div>
         </div>
       </div>

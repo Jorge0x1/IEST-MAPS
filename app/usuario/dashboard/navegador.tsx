@@ -550,7 +550,7 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
               </div>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid min-w-0 gap-4">
               <DetalleDestino nombre={destino.nombre} descripcion={destino.descripcion} fotoUrl={destino.fotoUrl} />
               {destino.alias.length > 0 ? <p className="text-sm text-slate-500">También conocido como: {destino.alias.join(", ")}</p> : null}
 
@@ -579,12 +579,13 @@ export function Navegador({ destinos, entradas, marcadores, nombreUsuario }: { d
                 <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Aún no hay puntos de partida registrados en {etiquetaPiso(pisoActual).toLowerCase()}. Elige otro piso o activa tu ubicación.</p>
               ) : (
                 <>
-                  <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+                  <label className="grid min-w-0 gap-1.5 text-sm font-semibold text-slate-700">
                     Sales de
+                    {/* w-full + min-w-0: sin esto el select toma el ancho de su opción más larga y desborda el panel. */}
                     <select
                       value={origenId}
                       onChange={(e) => cambiarOrigen(e.target.value)}
-                      className="rounded-xl border border-[var(--border-strong)] bg-white px-3 py-2.5 text-base font-normal text-slate-900"
+                      className="w-full min-w-0 truncate rounded-xl border border-[var(--border-strong)] bg-white px-3 py-2.5 text-base font-normal text-slate-900"
                     >
                       {origen || usandoGps ? null : <option value="" disabled>Elige desde dónde sales</option>}
                       <option value={ORIGEN_GPS} disabled={!gpsUtil}>Mi ubicación</option>
